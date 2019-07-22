@@ -45,7 +45,7 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 
 	ctx := context.Background()
 
-	client := testAccProvider.Meta().(*mailgun.MailgunImpl)
+	client := testAccProvider.Meta().(mailgun.Mailgun)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_domain" {

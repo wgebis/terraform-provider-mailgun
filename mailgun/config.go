@@ -10,6 +10,8 @@ type Config struct {
 	APIKey string
 }
 
+// Client() returns a new client for accessing mailgun.
+//
 func (c *Config) Client() (*mailgun.MailgunImpl, error) {
 
 	client := mailgun.NewMailgun("", c.APIKey)
