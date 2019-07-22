@@ -11,6 +11,8 @@ description: |-
 Provides a Mailgun App resource. This can be used to
 create and manage applications on Mailgun.
 
+After DNS records are set, domain verification should be triggered manually using [PUT /domains/\<domain\>/verify](https://documentation.mailgun.com/en/latest/api-domains.html#domains)
+
 ## Example Usage
 
 ```hcl
