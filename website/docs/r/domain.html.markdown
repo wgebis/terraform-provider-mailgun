@@ -18,7 +18,6 @@ create and manage applications on Mailgun.
 resource "mailgun_domain" "default" {
   name          = "test.example.com"
   spam_action   = "disabled"
-  smtp_password = "foobar"
 }
 ```
 
@@ -27,7 +26,6 @@ resource "mailgun_domain" "default" {
 The following arguments are supported:
 
 * `name` - (Required) The domain to add to Mailgun
-* `smtp_password` - (Required) Password for SMTP authentication
 * `spam_action` - (Optional) `disabled` or `tag` Disable, no spam
     filtering will occur for inbound messages. Tag, messages
     will be tagged with a spam header.
