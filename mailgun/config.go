@@ -6,11 +6,13 @@ import (
 	mailgun "github.com/mailgun/mailgun-go/v3"
 )
 
+// Config struct holds API key
+//
 type Config struct {
 	APIKey string
 }
 
-// Client() returns a new client for accessing mailgun.
+// Client returns a new client for accessing mailgun.
 //
 func (c *Config) Client() (*mailgun.MailgunImpl, error) {
 
