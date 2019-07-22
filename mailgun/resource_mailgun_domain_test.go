@@ -10,7 +10,7 @@ import (
 	mailgun "github.com/mailgun/mailgun-go/v3"
 )
 
-var _testDomainName = "terrformv3.exmaple.com"
+var _testDomainName = "terraformv3.example.com"
 
 func TestAccMailgunDomain_Basic(t *testing.T) {
 	var resp mailgun.DomainResponse
