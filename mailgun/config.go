@@ -3,23 +3,16 @@ package mailgun
 import (
 	"log"
 
-	"github.com/pearkes/mailgun"
+	mailgun "github.com/mailgun/mailgun-go/v3"
 )
 
 type Config struct {
 	APIKey string
 }
 
-// Client() returns a new client for accessing mailgun.
-//
-func (c *Config) Client() (*mailgun.Client, error) {
+func (c *Config) Client() (*mailgun.MailgunImpl, error) {
 
-	// We don't set a domain right away
-	client, err := mailgun.NewClient(c.APIKey)
-
-	if err != nil {
-		return nil, err
-	}
+	client := mailgun.NewMailgun("", c.APIKey)
 
 	log.Printf("[INFO] Mailgun Client configured ")
 
