@@ -146,7 +146,7 @@ func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error 
 		if err == nil {
 			log.Printf("[INFO] Retrying until route disappears...")
 			return resource.RetryableError(
-				fmt.Errorf("Route seems to still exist; will check again."))
+				fmt.Errorf("route seems to still exist; will check again"))
 		}
 		log.Printf("[INFO] Got error looking for route, seems gone: %s", err)
 		return nil

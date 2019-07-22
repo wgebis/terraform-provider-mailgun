@@ -18,7 +18,7 @@ func resourceMailgunDomain() *schema.Resource {
 		Delete: resourceMailgunDomainDelete,
 
 		Schema: map[string]*schema.Schema{
-			"name": &schema.Schema{
+			"name": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -49,19 +49,19 @@ func resourceMailgunDomain() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"priority": &schema.Schema{
+						"priority": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"record_type": &schema.Schema{
+						"record_type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"valid": &schema.Schema{
+						"valid": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -78,15 +78,15 @@ func resourceMailgunDomain() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"record_type": &schema.Schema{
+						"record_type": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"valid": &schema.Schema{
+						"valid": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"value": &schema.Schema{
+						"value": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -104,7 +104,6 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 
 	name := d.Get("name").(string)
 
-	// opts.Password = d.Get("smtp_password").(string)
 	opts.SpamAction = mailgun.SpamAction(d.Get("spam_action").(string))
 	opts.Wildcard = d.Get("wildcard").(bool)
 
@@ -153,7 +152,7 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 		if err == nil {
 			log.Printf("[INFO] Retrying until domain disappears...")
 			return resource.RetryableError(
-				fmt.Errorf("Domain seems to still exist; will check again."))
+				fmt.Errorf("domain seems to still exist; will check again"))
 		}
 		log.Printf("[INFO] Got error looking for domain, seems gone: %s", err)
 		return nil
