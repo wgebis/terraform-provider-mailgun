@@ -48,7 +48,7 @@ func resourceMailgunRoute() *schema.Resource {
 }
 
 func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.MailgunImpl)
+	client := meta.(*mailgun.MailgunImpl)
 
 	opts := mailgun.Route{}
 
@@ -64,9 +64,7 @@ func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	opts.Actions = actionArray
 	log.Printf("[DEBUG] Route create configuration: %v", opts)
 
-	ctx := context.Background()
-
-	route, err := client.CreateRoute(ctx, opts)
+	route, err := client.CreateRoute(context.Background(), opts)
 
 	if err != nil {
 		return err
@@ -77,7 +75,7 @@ func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] Route ID: %s", d.Id())
 
 	// Retrieve and update state of route
-	_, err = resourceMailgunRouteRetrieve(d.Id(), &client, d)
+	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
 
 	if err != nil {
 		return err
@@ -87,7 +85,7 @@ func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.MailgunImpl)
+	client := meta.(*mailgun.MailgunImpl)
 
 	opts := mailgun.Route{}
 
@@ -105,9 +103,7 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[DEBUG] Route update configuration: %v", opts)
 
-	ctx := context.Background()
-
-	route, err := client.UpdateRoute(ctx, d.Id(), opts)
+	route, err := client.UpdateRoute(context.Background(), d.Id(), opts)
 
 	if err != nil {
 		return err
@@ -118,7 +114,7 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] Route ID: %s", d.Id())
 
 	// Retrieve and update state of route
-	_, err = resourceMailgunRouteRetrieve(d.Id(), &client, d)
+	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
 
 	if err != nil {
 		return err
@@ -128,21 +124,19 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.MailgunImpl)
+	client := meta.(*mailgun.MailgunImpl)
 
 	log.Printf("[INFO] Deleting Route: %s", d.Id())
 
-	ctx := context.Background()
-
 	// Destroy the route
-	err := client.DeleteRoute(ctx, d.Id())
+	err := client.DeleteRoute(context.Background(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting route: %s", err)
 	}
 
 	// Give the destroy a chance to take effect
 	return resource.Retry(1*time.Minute, func() *resource.RetryError {
-		_, err = client.GetRoute(ctx, d.Id())
+		_, err = client.GetRoute(context.Background(), d.Id())
 		if err == nil {
 			log.Printf("[INFO] Retrying until route disappears...")
 			return resource.RetryableError(
@@ -154,9 +148,9 @@ func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteRead(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.MailgunImpl)
+	client := meta.(*mailgun.MailgunImpl)
 
-	_, err := resourceMailgunRouteRetrieve(d.Id(), &client, d)
+	_, err := resourceMailgunRouteRetrieve(d.Id(), client, d)
 
 	if err != nil {
 		return err
@@ -166,9 +160,8 @@ func resourceMailgunRouteRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceMailgunRouteRetrieve(id string, client *mailgun.MailgunImpl, d *schema.ResourceData) (*mailgun.Route, error) {
-	ctx := context.Background()
 
-	route, err := client.GetRoute(ctx, id)
+	route, err := client.GetRoute(context.Background(), id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving route: %s", err)

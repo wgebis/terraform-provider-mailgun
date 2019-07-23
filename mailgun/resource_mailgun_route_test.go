@@ -48,9 +48,7 @@ func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
 			continue
 		}
 
-		ctx := context.Background()
-
-		route, err := (*client).GetRoute(ctx, rs.Primary.ID)
+		route, err := client.GetRoute(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Route still exists: %#v", route)
@@ -74,11 +72,9 @@ func testAccCheckMailgunRouteExists(n string, Route *mailgun.Route) resource.Tes
 
 		client := testAccProvider.Meta().(*mailgun.MailgunImpl)
 
-		ctx := context.Background()
-
 		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 			var err error
-			*Route, err = (*client).GetRoute(ctx, rs.Primary.ID)
+			*Route, err = client.GetRoute(context.Background(), rs.Primary.ID)
 
 			if err != nil {
 				return resource.NonRetryableError(err)

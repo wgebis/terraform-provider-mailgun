@@ -98,7 +98,7 @@ func resourceMailgunDomain() *schema.Resource {
 }
 
 func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.MailgunImpl)
+	client := meta.(*mailgun.MailgunImpl)
 
 	opts := mailgun.CreateDomainOptions{}
 
@@ -109,9 +109,7 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
-	ctx := context.Background()
-
-	_, err := client.CreateDomain(ctx, name, &opts)
+	_, err := client.CreateDomain(context.Background(), name, &opts)
 
 	if err != nil {
 		return err
@@ -122,7 +120,7 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[INFO] Domain ID: %s", d.Id())
 
 	// Retrieve and update state of domain
-	_, err = resourceMailgunDomainRetrieve(d.Id(), &client, d)
+	_, err = resourceMailgunDomainRetrieve(d.Id(), client, d)
 
 	if err != nil {
 		return err
@@ -132,23 +130,19 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.MailgunImpl)
+	client := meta.(*mailgun.MailgunImpl)
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
 
-	ctx := context.Background()
-
 	// Destroy the domain
-	err := client.DeleteDomain(ctx, d.Id())
+	err := client.DeleteDomain(context.Background(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting domain: %s", err)
 	}
 
 	// Give the destroy a chance to take effect
 	return resource.Retry(1*time.Minute, func() *resource.RetryError {
-		ctx := context.Background()
-
-		_, err = client.GetDomain(ctx, d.Id())
+		_, err = client.GetDomain(context.Background(), d.Id())
 		if err == nil {
 			log.Printf("[INFO] Retrying until domain disappears...")
 			return resource.RetryableError(
@@ -160,9 +154,9 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.MailgunImpl)
+	client := meta.(*mailgun.MailgunImpl)
 
-	_, err := resourceMailgunDomainRetrieve(d.Id(), &client, d)
+	_, err := resourceMailgunDomainRetrieve(d.Id(), client, d)
 
 	if err != nil {
 		return err
@@ -173,9 +167,7 @@ func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *schema.ResourceData) (*mailgun.DomainResponse, error) {
 
-	ctx := context.Background()
-
-	resp, err := (*client).GetDomain(ctx, id)
+	resp, err := client.GetDomain(context.Background(), id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving domain: %s", err)
