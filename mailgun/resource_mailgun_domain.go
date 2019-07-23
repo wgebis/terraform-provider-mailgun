@@ -37,6 +37,12 @@ func resourceMailgunDomain() *schema.Resource {
 				Optional: true,
 			},
 
+			"smtp_password": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Optional: true,
+			},
+
 			"wildcard": {
 				Type:     schema.TypeBool,
 				Computed: true,
