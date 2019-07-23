@@ -48,7 +48,7 @@ func resourceMailgunRoute() *schema.Resource {
 }
 
 func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(mailgun.Mailgun)
+	client := *meta.(*mailgun.MailgunImpl)
 
 	opts := mailgun.Route{}
 
@@ -77,7 +77,7 @@ func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] Route ID: %s", d.Id())
 
 	// Retrieve and update state of route
-	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
+	_, err = resourceMailgunRouteRetrieve(d.Id(), &client, d)
 
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := *meta.(*mailgun.Mailgun)
+	client := *meta.(*mailgun.MailgunImpl)
 
 	opts := mailgun.Route{}
 
@@ -118,7 +118,7 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] Route ID: %s", d.Id())
 
 	// Retrieve and update state of route
-	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
+	_, err = resourceMailgunRouteRetrieve(d.Id(), &client, d)
 
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(mailgun.Mailgun)
+	client := *meta.(*mailgun.MailgunImpl)
 
 	log.Printf("[INFO] Deleting Route: %s", d.Id())
 
@@ -154,9 +154,9 @@ func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(mailgun.Mailgun)
+	client := *meta.(*mailgun.MailgunImpl)
 
-	_, err := resourceMailgunRouteRetrieve(d.Id(), client, d)
+	_, err := resourceMailgunRouteRetrieve(d.Id(), &client, d)
 
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func resourceMailgunRouteRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceMailgunRouteRetrieve(id string, client mailgun.Mailgun, d *schema.ResourceData) (*mailgun.Route, error) {
+func resourceMailgunRouteRetrieve(id string, client *mailgun.MailgunImpl, d *schema.ResourceData) (*mailgun.Route, error) {
 	ctx := context.Background()
 
 	route, err := client.GetRoute(ctx, id)

@@ -45,14 +45,14 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 
 	ctx := context.Background()
 
-	client := testAccProvider.Meta().(mailgun.Mailgun)
+	client := testAccProvider.Meta().(*mailgun.MailgunImpl)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_domain" {
 			continue
 		}
 
-		resp, err := client.GetDomain(ctx, rs.Primary.ID)
+		resp, err := (*client).GetDomain(ctx, rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Domain still exists: %#v", resp)
