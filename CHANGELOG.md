@@ -1,4 +1,4 @@
-## 0.2.0 (Unreleased)
+## 0.2.0 (October 07, 2019)
 
 NOTES:
 
