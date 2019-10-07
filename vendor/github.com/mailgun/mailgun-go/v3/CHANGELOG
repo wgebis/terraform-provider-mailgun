@@ -1,0 +1,152 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [3.6.0] - 2019-06-26
+### Added
+* Added UpdateClickTracking() to modify click tracking for a domain
+* Added UpdateUnsubscribeTracking() to modify unsubscribe tracking for a domain
+* Added UpdateOpenTracking() to modify open tracking for a domain
+
+## [3.5.0] - 2019-05-21
+### Added
+* Added notice in README about go dep bug.
+* Added endpoints for webhooks in mock server
+### Changes
+* Change names of some parameters on public methods to make their use clearer.
+* Changed signature of `GetWebhook()` now returns []string.
+* Changed signature of `ListWebhooks()` now returns map[string][]string.
+* Both `GetWebhooks()` and `ListWebhooks()` now handle new and legacy webhooks properly.
+
+## [3.4.0] - 2019-04-23
+### Added
+* Added `Message.SetTemplate()` to allow sending with the body of a template.
+### Changes
+* Changed signature of `CreateDomain()` moved password into `CreateDomainOptions`
+
+## [3.4.0] - 2019-04-23
+### Added
+* Added `Message.SetTemplate()` to allow sending with the body of a template.
+### Changes
+* Changed signature of `CreateDomain()` moved password into `CreateDomainOptions`
+
+## [3.3.2] - 2019-03-28
+### Changes
+* Uncommented DeliveryStatus.Code and change it to an integer (See #175)
+* Added UserVariables to all Message events (See #176)
+
+## [3.3.1] - 2019-03-13
+### Changes
+* Updated Template calls to reflect the most recent Template API changes.
+* GetStoredMessage() now accepts a URL instead of an id
+* Deprecated GetStoredMessageForURL()
+* Deprecated GetStoredMessageRawForURL()
+* Fixed GetUnsubscribed()
+
+### Added
+* Added `GetStoredAttachment()`
+
+### Removed
+* Method `DeleteStoredMessage()` mailgun API no long allows this call
+
+## [3.3.0] - 2019-01-28
+### Changes
+* Changed signature of CreateDomain() Now returns JSON response
+* Changed signature of GetDomain() Now returns a single DomainResponse
+* Clarified installation notes for non golang module users
+* Changed 'Public Key' to 'Public Validation Key' in readme
+* Fixed issue with Next() for limit/skip based iterators
+
+### Added
+* Added VerifyDomain()
+
+## [3.2.0] - 2019-01-21
+### Changes
+* Deprecated mg.VerifyWebhookRequest()
+
+### Added
+* Added mailgun.ParseEvent()
+* Added mailgun.ParseEvents()
+* Added mg.VerifyWebhookSignature()
+
+
+## [3.1.0] - 2019-01-16
+### Changes
+* Removed context.Context from ListDomains() signature
+* ListEventOptions.Begin and End are no longer pointers to time.Time
+
+### Added
+* Added mg.ReSend() to public Mailgun interface
+* Added Message.SetSkipVerification()
+* Added Message.SetRequireTLS()
+
+## [3.0.0] - 2019-01-15
+### Added
+* Added CHANGELOG
+* Added `AddDomainIP()`
+* Added `ListDomainIPS()`
+* Added `DeleteDomainIP()`
+* Added `ListIPS()`
+* Added `GetIP()`
+* Added `GetDomainTracking()`
+* Added `GetDomainConnection()`
+* Added `UpdateDomainConnection()`
+* Added `CreateExport()`
+* Added `ListExports()`
+* Added `GetExports()`
+* Added `GetExportLink()`
+* Added `CreateTemplate()`
+* Added `GetTemplate()`
+* Added `UpdateTemplate()`
+* Added `DeleteTemplate()`
+* Added `ListTemplates()`
+* Added `AddTemplateVersion()`
+* Added `GetTemplateVersion()`
+* Added `UpdateTemplateVersion()`
+* Added `DeleteTemplateVersion()`
+* Added `ListTemplateVersions()`
+
+### Changed
+* Added a `mailgun.MockServer` which duplicates part of the mailgun API; suitable for testing
+* `ListMailingLists()` now uses the `/pages` API and returns an iterator
+* `ListMembers()` now uses the `/pages` API and returns an iterator
+* Renamed public interface methods to be consistent. IE: `GetThing(), ListThing(), CreateThing()`
+* Moved event objects into the `mailgun/events` package, so names like
+  `MailingList` returned by API calls and `MailingList` as an event object
+  don't conflict and confuse users.
+* Now using context.Context for all network operations
+* Test suite will run without MG_ env vars defined
+* ListRoutes() now uses the iterator interface
+* Added SkipNetworkTest()
+* Renamed GetStatsTotals() to GetStats()
+* Renamed GetUnsubscribes to ListUnsubscribes()
+* Renamed Unsubscribe() to CreateUnsubscribe()
+* Renamed RemoveUnsubscribe() to DeleteUnsubscribe()
+* GetStats() now takes an `*opt` argument to pass optional parameters
+* Modified GetUnsubscribe() to follow the API
+* Now using golang modules
+* ListCredentials() now returns an iterator
+* ListUnsubscribes() now returns an paging iterator
+* CreateDomain now accepts CreateDomainOption{}
+* CreateDomain() now supports all optional parameters not just spam_action and wildcard.
+* ListComplaints() now returns a page iterator
+* Renamed `TagItem` to `Tag`
+* ListBounces() now returns a page iterator
+* API responses with CreatedAt fields are now unmarshalled into RFC2822
+* DomainList() now returns an iterator
+* Updated godoc documentation
+* Renamed ApiBase to APIBase
+* Updated copyright to 2019
+* `ListEvents()` now returns a list of typed events
+
+### Removed
+* Removed more deprecated types
+* Removed gobuffalo/envy dependency
+* Remove mention of the CLI in the README
+* Removed mailgun cli from project
+* Removed GetCode() from `Bounce` struct. Verified API returns 'string' and not 'int'
+* Removed deprecated methods NewMessage and NewMIMEMessage
+* Removed ginkgo and gomega tests
+* Removed GetStats() As the /stats endpoint is depreciated

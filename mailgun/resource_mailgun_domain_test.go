@@ -1,13 +1,16 @@
 package mailgun
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/pearkes/mailgun"
+	mailgun "github.com/mailgun/mailgun-go/v3"
 )
+
+var _testDomainName = "terraformv3.example.com"
 
 func TestAccMailgunDomain_Basic(t *testing.T) {
 	var resp mailgun.DomainResponse
@@ -18,22 +21,20 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckMailgunDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckMailgunDomainConfig_basic,
+				Config: testAccCheckMailgunDomainConfig(),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMailgunDomainExists("mailgun_domain.foobar", &resp),
 					testAccCheckMailgunDomainAttributes(&resp),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain.foobar", "name", "terraform.example.com"),
+						"mailgun_domain.foobar", "name", _testDomainName),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "spam_action", "disabled"),
-					resource.TestCheckResourceAttr(
-						"mailgun_domain.foobar", "smtp_password", "foobar"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "wildcard", "true"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain.foobar", "sending_records.0.name", "terraform.example.com"),
+						"mailgun_domain.foobar", "sending_records.0.name", _testDomainName),
 				),
 			},
 		},
@@ -41,14 +42,15 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 }
 
 func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*mailgun.Client)
+
+	client := testAccProvider.Meta().(*mailgun.MailgunImpl)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_domain" {
 			continue
 		}
 
-		resp, err := client.RetrieveDomain(rs.Primary.ID)
+		resp, err := client.GetDomain(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Domain still exists: %#v", resp)
@@ -61,7 +63,7 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 func testAccCheckMailgunDomainAttributes(DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if DomainResp.Domain.Name != "terraform.example.com" {
+		if DomainResp.Domain.Name != _testDomainName {
 			return fmt.Errorf("Bad name: %s", DomainResp.Domain.Name)
 		}
 
@@ -73,16 +75,12 @@ func testAccCheckMailgunDomainAttributes(DomainResp *mailgun.DomainResponse) res
 			return fmt.Errorf("Bad wildcard: %t", DomainResp.Domain.Wildcard)
 		}
 
-		if DomainResp.Domain.SmtpPassword != "foobar" {
-			return fmt.Errorf("Bad smtp_password: %s", DomainResp.Domain.SmtpPassword)
+		if DomainResp.ReceivingDNSRecords[0].Priority == "" {
+			return fmt.Errorf("Bad receiving_records: %s", DomainResp.ReceivingDNSRecords)
 		}
 
-		if DomainResp.ReceivingRecords[0].Priority == "" {
-			return fmt.Errorf("Bad receiving_records: %s", DomainResp.ReceivingRecords)
-		}
-
-		if DomainResp.SendingRecords[0].Name == "" {
-			return fmt.Errorf("Bad sending_records: %s", DomainResp.SendingRecords)
+		if DomainResp.SendingDNSRecords[0].Name == "" {
+			return fmt.Errorf("Bad sending_records: %s", DomainResp.SendingDNSRecords)
 		}
 
 		return nil
@@ -101,9 +99,9 @@ func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainRespons
 			return fmt.Errorf("No Domain ID is set")
 		}
 
-		client := testAccProvider.Meta().(*mailgun.Client)
+		client := testAccProvider.Meta().(*mailgun.MailgunImpl)
 
-		resp, err := client.RetrieveDomain(rs.Primary.ID)
+		resp, err := client.GetDomain(context.Background(), rs.Primary.ID)
 
 		if err != nil {
 			return err
@@ -119,10 +117,10 @@ func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainRespons
 	}
 }
 
-const testAccCheckMailgunDomainConfig_basic = `
-resource "mailgun_domain" "foobar" {
-    name = "terraform.example.com"
+func testAccCheckMailgunDomainConfig() string {
+	return `resource "mailgun_domain" "foobar" {
+    name = "` + _testDomainName + `"
     spam_action = "disabled"
-    smtp_password = "foobar"
     wildcard = true
 }`
+}
