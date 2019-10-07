@@ -1,6 +1,4 @@
-# ChangeLog
-
-## 0.2.0 (October 7, 2019)
+## 0.2.0 (Unreleased)
 
 NOTES:
 
