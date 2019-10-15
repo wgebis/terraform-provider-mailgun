@@ -41,6 +41,26 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 	})
 }
 
+func TestAccMailgunDomain_Import(t *testing.T) {
+	resourceName := "mailgun_domain.foobar"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckMailgunDomainDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckMailgunDomainConfig(),
+			},
+
+			resource.TestStep{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 
 	client := testAccProvider.Meta().(*mailgun.MailgunImpl)
