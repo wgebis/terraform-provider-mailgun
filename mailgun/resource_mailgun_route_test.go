@@ -40,6 +40,26 @@ func TestAccMailgunRoute_Basic(t *testing.T) {
 	})
 }
 
+func TestAccMailgunRoute_Import(t *testing.T) {
+	resourceName := "mailgun_route.foobar"
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckMailgunRouteDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckMailgunRouteConfig,
+			},
+
+			resource.TestStep{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*mailgun.MailgunImpl)
 

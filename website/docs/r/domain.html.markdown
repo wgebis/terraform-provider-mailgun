@@ -53,3 +53,11 @@ The following attributes are exported:
     * `record_type` - The record type.
     * `valid` - `"valid"` if the record is valid.
     * `value` - The value of the record.
+
+## Import
+
+Domains can be imported using `domain_name` via `import` command:
+
+```hcl
+terraform import mailgun_domain example.domain.com
+```

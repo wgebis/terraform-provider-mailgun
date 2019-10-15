@@ -33,3 +33,11 @@ The following arguments are supported:
 * `description` - (Required)
 * `expression` - (Required) A filter expression like `match_recipient('.*@gmail.com')`
 * `action` - (Required) Route action. This action is executed when the expression evaluates to True. Example: `forward("alice@example.com")` You can pass multiple `action` parameters.
+
+## Import
+
+Routes can be imported using `ROUTE_ID` via `import` command. Route ID can be found on Mailgun portal in section `Receiving/Routes`.
+
+```hcl
+terraform import mailgun_route ROUTE_ID
+```

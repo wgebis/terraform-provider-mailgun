@@ -18,6 +18,9 @@ func resourceMailgunRoute() *schema.Resource {
 		Read:   resourceMailgunRouteRead,
 		Update: resourceMailgunRouteUpdate,
 		Delete: resourceMailgunRouteDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"priority": {

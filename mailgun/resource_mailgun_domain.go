@@ -16,6 +16,9 @@ func resourceMailgunDomain() *schema.Resource {
 		Create: resourceMailgunDomainCreate,
 		Read:   resourceMailgunDomainRead,
 		Delete: resourceMailgunDomainDelete,
+		Importer: &schema.ResourceImporter{
+			State: schema.ImportStatePassthrough,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"name": {
