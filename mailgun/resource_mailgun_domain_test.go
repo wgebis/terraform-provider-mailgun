@@ -63,11 +63,14 @@ func TestAccMailgunDomain_Import(t *testing.T) {
 
 func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 
-	client := testAccProvider.Meta().(*mailgun.MailgunImpl)
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_domain" {
 			continue
+		}
+
+		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		if errc != nil {
+			return errc
 		}
 
 		resp, err := client.GetDomain(context.Background(), rs.Primary.ID)
@@ -119,7 +122,10 @@ func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainRespons
 			return fmt.Errorf("No Domain ID is set")
 		}
 
-		client := testAccProvider.Meta().(*mailgun.MailgunImpl)
+		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		if errc != nil {
+			return errc
+		}
 
 		resp, err := client.GetDomain(context.Background(), rs.Primary.ID)
 
@@ -140,7 +146,8 @@ func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainRespons
 func testAccCheckMailgunDomainConfig() string {
 	return `resource "mailgun_domain" "foobar" {
     name = "` + _testDomainName + `"
-    spam_action = "disabled"
+	spam_action = "disabled"
+	region = "us"
     wildcard = true
 }`
 }

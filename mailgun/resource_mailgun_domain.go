@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -17,7 +18,7 @@ func resourceMailgunDomain() *schema.Resource {
 		Read:   resourceMailgunDomainRead,
 		Delete: resourceMailgunDomainDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceMailgunDomainImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -27,9 +28,15 @@ func resourceMailgunDomain() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"region": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "us",
+			},
+
 			"spam_action": {
 				Type:     schema.TypeString,
-				Computed: true,
 				ForceNew: true,
 				Optional: true,
 			},
@@ -37,18 +44,15 @@ func resourceMailgunDomain() *schema.Resource {
 			"smtp_login": {
 				Type:     schema.TypeString,
 				Computed: true,
-				Optional: true,
 			},
 
 			"smtp_password": {
 				Type:     schema.TypeString,
 				Computed: true,
-				Optional: true,
 			},
 
 			"wildcard": {
 				Type:     schema.TypeBool,
-				Computed: true,
 				ForceNew: true,
 				Optional: true,
 			},
@@ -106,8 +110,25 @@ func resourceMailgunDomain() *schema.Resource {
 	}
 }
 
+func resourceMailgunDomainImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+
+	parts := strings.SplitN(d.Id(), ":", 2)
+
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		d.Set("region", "us")
+	} else {
+		d.Set("region", parts[0])
+		d.SetId(parts[1])
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
 func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*mailgun.MailgunImpl)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	if errc != nil {
+		return errc
+	}
 
 	opts := mailgun.CreateDomainOptions{}
 
@@ -139,7 +160,10 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*mailgun.MailgunImpl)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	if errc != nil {
+		return errc
+	}
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
 
@@ -163,7 +187,11 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*mailgun.MailgunImpl)
+
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	if errc != nil {
+		return errc
+	}
 
 	_, err := resourceMailgunDomainRetrieve(d.Id(), client, d)
 

@@ -1,7 +1,9 @@
 package mailgun
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	mailgun "github.com/mailgun/mailgun-go/v3"
 )
@@ -9,16 +11,34 @@ import (
 // Config struct holds API key
 //
 type Config struct {
-	APIKey string
+	APIKey   string
+	USClient *mailgun.MailgunImpl
+	EUClient *mailgun.MailgunImpl
 }
 
 // Client returns a new client for accessing mailgun.
 //
-func (c *Config) Client() (*mailgun.MailgunImpl, error) {
+func (c *Config) Client() (*Config, error) {
 
-	client := mailgun.NewMailgun("", c.APIKey)
+	c.USClient = mailgun.NewMailgun("", c.APIKey)
+	c.USClient.SetAPIBase("https://api.mailgun.net/v3")
+	c.EUClient = mailgun.NewMailgun("", c.APIKey)
+	c.EUClient.SetAPIBase("https://api.eu.mailgun.net/v3")
 
 	log.Printf("[INFO] Mailgun Client configured ")
 
-	return client, nil
+	return c, nil
+}
+
+// Client returns a client based on region.
+//
+func (c *Config) GetClient(Region string) (*mailgun.MailgunImpl, error) {
+
+	if strings.ToLower(Region) == "eu" {
+		return c.EUClient, nil
+	} else if strings.ToLower(Region) == "us" {
+		return c.USClient, nil
+	} else {
+		return nil, fmt.Errorf("Unable to get a Mailgun client")
+	}
 }
