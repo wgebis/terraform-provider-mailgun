@@ -1,4 +1,9 @@
 ## 0.4.1 (Unreleased)
+
+NOTES:
+
+* adding hotfix for fallback to defalut region `us`
+
 ## 0.4.0 (October 22, 2019)
 
 NOTES:

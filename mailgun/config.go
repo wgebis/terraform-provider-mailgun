@@ -1,7 +1,6 @@
 package mailgun
 
 import (
-	"fmt"
 	"log"
 	"strings"
 
@@ -39,6 +38,7 @@ func (c *Config) GetClient(Region string) (*mailgun.MailgunImpl, error) {
 	} else if strings.ToLower(Region) == "us" {
 		return c.USClient, nil
 	} else {
-		return nil, fmt.Errorf("Unable to get a Mailgun client")
+		// fallback to default region
+		return c.USClient, nil
 	}
 }
