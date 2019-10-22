@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	mailgun "github.com/mailgun/mailgun-go/v3"
@@ -19,7 +20,7 @@ func resourceMailgunRoute() *schema.Resource {
 		Update: resourceMailgunRouteUpdate,
 		Delete: resourceMailgunRouteDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceMailgunRouteImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -27,6 +28,13 @@ func resourceMailgunRoute() *schema.Resource {
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
+			},
+
+			"region": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "us",
 			},
 
 			"description": {
@@ -50,8 +58,25 @@ func resourceMailgunRoute() *schema.Resource {
 	}
 }
 
+func resourceMailgunRouteImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+
+	parts := strings.SplitN(d.Id(), ":", 2)
+
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		d.Set("region", "us")
+	} else {
+		d.Set("region", parts[0])
+		d.SetId(parts[1])
+	}
+
+	return []*schema.ResourceData{d}, nil
+}
+
 func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*mailgun.MailgunImpl)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	if errc != nil {
+		return errc
+	}
 
 	opts := mailgun.Route{}
 
@@ -88,7 +113,10 @@ func resourceMailgunRouteCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*mailgun.MailgunImpl)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	if errc != nil {
+		return errc
+	}
 
 	opts := mailgun.Route{}
 
@@ -127,7 +155,10 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*mailgun.MailgunImpl)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	if errc != nil {
+		return errc
+	}
 
 	log.Printf("[INFO] Deleting Route: %s", d.Id())
 
@@ -151,7 +182,10 @@ func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceMailgunRouteRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*mailgun.MailgunImpl)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	if errc != nil {
+		return errc
+	}
 
 	_, err := resourceMailgunRouteRetrieve(d.Id(), client, d)
 

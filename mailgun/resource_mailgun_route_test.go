@@ -61,14 +61,14 @@ func TestAccMailgunRoute_Import(t *testing.T) {
 }
 
 func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*mailgun.MailgunImpl)
+	client := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_route" {
 			continue
 		}
 
-		route, err := client.GetRoute(context.Background(), rs.Primary.ID)
+		route, err := client.USClient.GetRoute(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Route still exists: %#v", route)
@@ -90,11 +90,11 @@ func testAccCheckMailgunRouteExists(n string, Route *mailgun.Route) resource.Tes
 			return fmt.Errorf("No Route ID is set")
 		}
 
-		client := testAccProvider.Meta().(*mailgun.MailgunImpl)
+		client := testAccProvider.Meta().(*Config)
 
 		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 			var err error
-			*Route, err = client.GetRoute(context.Background(), rs.Primary.ID)
+			*Route, err = client.USClient.GetRoute(context.Background(), rs.Primary.ID)
 
 			if err != nil {
 				return resource.NonRetryableError(err)
