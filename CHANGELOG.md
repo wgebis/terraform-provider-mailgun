@@ -1,10 +1,14 @@
-## 0.3.1 (Unreleased)
+## 0.4.0 (Unreleased)
+
+NOTES:
+
+* adding support for Mailgun regions (`us` and `eu`) 
+
 ## 0.3.0 (October 16, 2019)
 
 NOTES:
 
 * adding support `terraform import` for Mailgun resources 
-
 
 ## 0.2.0 (October 07, 2019)
 

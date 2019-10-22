@@ -19,6 +19,7 @@ After DNS records are set, domain verification should be triggered manually usin
 # Create a new Mailgun domain
 resource "mailgun_domain" "default" {
   name          = "test.example.com"
+  region        = "us"
   spam_action   = "disabled"
 }
 ```
@@ -28,6 +29,7 @@ resource "mailgun_domain" "default" {
 The following arguments are supported:
 
 * `name` - (Required) The domain to add to Mailgun
+* `region` - (Optional) The region where domain will be created. Default value is `us`.
 * `spam_action` - (Optional) `disabled` or `tag` Disable, no spam
     filtering will occur for inbound messages. Tag, messages
     will be tagged with a spam header.
@@ -39,6 +41,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `name` - The name of the domain.
+* `region` - The name of the region.
 * `smtp_login` - The login email for the SMTP server.
 * `smtp_password` - The password to the SMTP server.
 * `wildcard` - Whether or not the domain will accept email for sub-domains.
@@ -56,8 +59,8 @@ The following attributes are exported:
 
 ## Import
 
-Domains can be imported using `domain_name` via `import` command:
+Domains can be imported using `region:domain_name` via `import` command. Region has to be chosen from `eu` or `us` (when no selection `us` is applied). 
 
 ```hcl
-terraform import mailgun_domain example.domain.com
+terraform import mailgun_domain.test us:example.domain.com
 ```
