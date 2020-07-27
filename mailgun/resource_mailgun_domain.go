@@ -48,7 +48,8 @@ func resourceMailgunDomain() *schema.Resource {
 
 			"smtp_password": {
 				Type:     schema.TypeString,
-				Computed: true,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"wildcard": {
@@ -135,6 +136,7 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 	name := d.Get("name").(string)
 
 	opts.SpamAction = mailgun.SpamAction(d.Get("spam_action").(string))
+	opts.Password = d.Get("smtp_password").(string)
 	opts.Wildcard = d.Get("wildcard").(bool)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)

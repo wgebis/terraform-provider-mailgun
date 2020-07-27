@@ -91,6 +91,8 @@ var Debug = false
 const (
 	// Base Url the library uses to contact mailgun. Use SetAPIBase() to override
 	APIBase              = "https://api.mailgun.net/v3"
+	APIBaseUS            = APIBase
+	APIBaseEU            = "https://api.eu.mailgun.net/v3"
 	messagesEndpoint     = "messages"
 	mimeMessagesEndpoint = "messages.mime"
 	bouncesEndpoint      = "bounces"
@@ -131,7 +133,7 @@ type Mailgun interface {
 
 	ListBounces(opts *ListOptions) *BouncesIterator
 	GetBounce(ctx context.Context, address string) (Bounce, error)
-	AddBounce(ctx context.Context, address, code, error string) error
+	AddBounce(ctx context.Context, address, code, err string) error
 	DeleteBounce(ctx context.Context, address string) error
 
 	GetStats(ctx context.Context, events []string, opts *GetStatOptions) ([]Stats, error)
@@ -188,6 +190,7 @@ type Mailgun interface {
 	GetWebhook(ctx context.Context, kind string) ([]string, error)
 	UpdateWebhook(ctx context.Context, kind string, url []string) error
 	VerifyWebhookRequest(req *http.Request) (verified bool, err error)
+	VerifyWebhookSignature(sig Signature) (verified bool, err error)
 
 	ListMailingLists(opts *ListOptions) *ListsIterator
 	CreateMailingList(ctx context.Context, address MailingList) (MailingList, error)
@@ -299,6 +302,14 @@ func (mg *MailgunImpl) SetClient(c *http.Client) {
 }
 
 // SetAPIBase updates the API Base URL for this client.
+//  // For EU Customers
+//  mg.SetAPIBase(mailgun.APIBaseEU)
+//
+//  // For US Customers
+//  mg.SetAPIBase(mailgun.APIBaseUS)
+//
+//  // Set a custom base API
+//  mg.SetAPIBase("https://localhost/v3")
 func (mg *MailgunImpl) SetAPIBase(address string) {
 	mg.apiBase = address
 }

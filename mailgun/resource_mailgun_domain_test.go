@@ -30,6 +30,8 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "spam_action", "disabled"),
 					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "smtp_password", "supersecretpassword1234"),
+					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "wildcard", "true"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
@@ -147,6 +149,7 @@ func testAccCheckMailgunDomainConfig() string {
 	return `resource "mailgun_domain" "foobar" {
     name = "` + _testDomainName + `"
 	spam_action = "disabled"
+	smtp_password = "supersecretpassword1234"
 	region = "us"
     wildcard = true
 }`
