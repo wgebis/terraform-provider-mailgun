@@ -1,3 +1,9 @@
+## 0.4.3 (Unreleased)
+
+NOTES:
+
+* add Terraform Plugin SDK dependencies
+
 ## 0.4.2 (July 27, 2020)
 
 NOTES:
@@ -5,7 +11,6 @@ NOTES:
 * add setting smtp_password support
 * upgrade Mailgun client to newest version
 * vendor update 
-
 
 ## 0.4.1 (October 22, 2019)
 
