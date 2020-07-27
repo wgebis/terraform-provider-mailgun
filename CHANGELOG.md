@@ -1,4 +1,12 @@
 ## 0.4.2 (Unreleased)
+
+NOTES:
+
+* add setting smtp_password support
+* upgrade Mailgun client to newest version
+* vendor update 
+
+
 ## 0.4.1 (October 22, 2019)
 
 NOTES:

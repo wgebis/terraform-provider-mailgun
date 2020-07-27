@@ -21,6 +21,7 @@ resource "mailgun_domain" "default" {
   name          = "test.example.com"
   region        = "us"
   spam_action   = "disabled"
+  smtp_password   = "supersecretpassword1234"
 }
 ```
 
@@ -30,6 +31,7 @@ The following arguments are supported:
 
 * `name` - (Required) The domain to add to Mailgun
 * `region` - (Optional) The region where domain will be created. Default value is `us`.
+* `smtp_password` - (Optional) Password for SMTP authentication
 * `spam_action` - (Optional) `disabled` or `tag` Disable, no spam
     filtering will occur for inbound messages. Tag, messages
     will be tagged with a spam header.
