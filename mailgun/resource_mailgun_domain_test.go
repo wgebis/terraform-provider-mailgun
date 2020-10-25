@@ -5,28 +5,29 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
-	mailgun "github.com/mailgun/mailgun-go/v3"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/mailgun/mailgun-go/v3"
 )
-
-var _testDomainName = "terraformv3.example.com"
 
 func TestAccMailgunDomain_Basic(t *testing.T) {
 	var resp mailgun.DomainResponse
+	uuid, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraform.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckMailgunDomainDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckMailgunDomainConfig(),
+				Config: testAccCheckMailgunDomainConfig(domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMailgunDomainExists("mailgun_domain.foobar", &resp),
-					testAccCheckMailgunDomainAttributes(&resp),
+					testAccCheckMailgunDomainAttributes(domain, &resp),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain.foobar", "name", _testDomainName),
+						"mailgun_domain.foobar", "name", domain),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "spam_action", "disabled"),
 					resource.TestCheckResourceAttr(
@@ -36,7 +37,7 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain.foobar", "sending_records.0.name", _testDomainName),
+						"mailgun_domain.foobar", "sending_records.0.name", domain),
 				),
 			},
 		},
@@ -45,13 +46,16 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 
 func TestAccMailgunDomain_Import(t *testing.T) {
 	resourceName := "mailgun_domain.foobar"
+	uuid, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraform.%s.com", uuid)
+
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckMailgunDomainDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunDomainDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckMailgunDomainConfig(),
+				Config: testAccCheckMailgunDomainConfig(domain),
 			},
 
 			resource.TestStep{
@@ -85,10 +89,10 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckMailgunDomainAttributes(DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
+func testAccCheckMailgunDomainAttributes(domain string, DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if DomainResp.Domain.Name != _testDomainName {
+		if DomainResp.Domain.Name != domain {
 			return fmt.Errorf("Bad name: %s", DomainResp.Domain.Name)
 		}
 
@@ -145,9 +149,9 @@ func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainRespons
 	}
 }
 
-func testAccCheckMailgunDomainConfig() string {
+func testAccCheckMailgunDomainConfig(domain string) string {
 	return `resource "mailgun_domain" "foobar" {
-    name = "` + _testDomainName + `"
+    name = "` + domain + `"
 	spam_action = "disabled"
 	smtp_password = "supersecretpassword1234"
 	region = "us"

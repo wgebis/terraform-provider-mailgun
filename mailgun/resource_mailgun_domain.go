@@ -7,20 +7,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	mailgun "github.com/mailgun/mailgun-go/v3"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/mailgun/mailgun-go/v3"
 )
 
 func resourceMailgunDomain() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceMailgunDomainCreate,
-		Read:   resourceMailgunDomainRead,
-		Delete: resourceMailgunDomainDelete,
+		CreateContext: resourceMailgunDomainCreate,
+		Read:          resourceMailgunDomainRead,
+		Delete:        resourceMailgunDomainDelete,
 		Importer: &schema.ResourceImporter{
-			State: resourceMailgunDomainImport,
+			StateContext: resourceMailgunDomainImport,
 		},
-
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
@@ -50,6 +50,7 @@ func resourceMailgunDomain() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"wildcard": {
@@ -111,7 +112,7 @@ func resourceMailgunDomain() *schema.Resource {
 	}
 }
 
-func resourceMailgunDomainImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceMailgunDomainImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 
 	parts := strings.SplitN(d.Id(), ":", 2)
 
@@ -125,10 +126,10 @@ func resourceMailgunDomainImport(d *schema.ResourceData, meta interface{}) ([]*s
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	opts := mailgun.CreateDomainOptions{}
@@ -144,7 +145,7 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 	_, err := client.CreateDomain(context.Background(), name, &opts)
 
 	if err != nil {
-		return err
+		return diag.FromErr(errc)
 	}
 
 	d.SetId(name)
@@ -155,7 +156,7 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 	_, err = resourceMailgunDomainRetrieve(d.Id(), client, d)
 
 	if err != nil {
-		return err
+		return diag.FromErr(errc)
 	}
 
 	return nil
@@ -176,7 +177,7 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Give the destroy a chance to take effect
-	return resource.Retry(1*time.Minute, func() *resource.RetryError {
+	return resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
 		_, err = client.GetDomain(context.Background(), d.Id())
 		if err == nil {
 			log.Printf("[INFO] Retrying until domain disappears...")

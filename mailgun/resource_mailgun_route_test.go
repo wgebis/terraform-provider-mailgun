@@ -6,19 +6,19 @@ import (
 	"testing"
 	"time"
 
-	mailgun "github.com/mailgun/mailgun-go/v3"
+	"github.com/mailgun/mailgun-go/v3"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMailgunRoute_Basic(t *testing.T) {
 	var route mailgun.Route
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckMailgunRouteDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCheckMailgunRouteConfig,
@@ -43,9 +43,9 @@ func TestAccMailgunRoute_Basic(t *testing.T) {
 func TestAccMailgunRoute_Import(t *testing.T) {
 	resourceName := "mailgun_route.foobar"
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckMailgunRouteDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccCheckMailgunRouteConfig,

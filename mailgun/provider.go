@@ -3,13 +3,12 @@ package mailgun
 import (
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 // Provider returns a terraform.ResourceProvider.
-func Provider() terraform.ResourceProvider {
-	return &schema.Provider{
+func Provider() *schema.Provider {
+	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
@@ -18,13 +17,21 @@ func Provider() terraform.ResourceProvider {
 			},
 		},
 
+		DataSourcesMap: map[string]*schema.Resource{
+			"mailgun_domain": dataSourceMailgunDomain(),
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"mailgun_domain": resourceMailgunDomain(),
 			"mailgun_route":  resourceMailgunRoute(),
 		},
-
-		ConfigureFunc: providerConfigure,
 	}
+
+	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+		return providerConfigure(d)
+	}
+
+	return p
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
