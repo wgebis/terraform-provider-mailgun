@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mailgun/mailgun-go/v3"
+	"github.com/mailgun/mailgun-go/v4"
 )
 
 func resourceMailgunDomain() *schema.Resource {
@@ -145,7 +145,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	_, err := client.CreateDomain(context.Background(), name, &opts)
 
 	if err != nil {
-		return diag.FromErr(errc)
+		return diag.FromErr(err)
 	}
 
 	d.SetId(name)

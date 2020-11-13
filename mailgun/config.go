@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/mailgun/mailgun-go/v3"
+	"github.com/mailgun/mailgun-go/v4"
 )
 
 // Config struct holds API key
