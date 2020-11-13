@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v3"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -68,7 +68,7 @@ func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
 			continue
 		}
 
-		route, err := client.USClient.GetRoute(context.Background(), rs.Primary.ID)
+		route, err := client.MailgunClient.GetRoute(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Route still exists: %#v", route)
@@ -94,7 +94,7 @@ func testAccCheckMailgunRouteExists(n string, Route *mailgun.Route) resource.Tes
 
 		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
 			var err error
-			*Route, err = client.USClient.GetRoute(context.Background(), rs.Primary.ID)
+			*Route, err = client.MailgunClient.GetRoute(context.Background(), rs.Primary.ID)
 
 			if err != nil {
 				return resource.NonRetryableError(err)

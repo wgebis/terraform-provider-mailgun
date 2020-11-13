@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v3"
 )
 
 func TestAccMailgunDomain_Basic(t *testing.T) {

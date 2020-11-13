@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v3"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

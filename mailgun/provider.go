@@ -1,6 +1,8 @@
 package mailgun
 
 import (
+	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,14 +29,14 @@ func Provider() *schema.Provider {
 		},
 	}
 
-	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		return providerConfigure(d)
 	}
 
 	return p
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	config := Config{
 		APIKey: d.Get("api_key").(string),
 	}

@@ -10,14 +10,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v3"
 )
 
 func resourceMailgunDomain() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceMailgunDomainCreate,
-		Read:          resourceMailgunDomainRead,
-		Delete:        resourceMailgunDomainDelete,
+		ReadContext:   resourceMailgunDomainRead,
+		UpdateContext: resourceMailgunDomainUpdate,
+		DeleteContext: resourceMailgunDomainDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceMailgunDomainImport,
 		},
@@ -49,7 +50,7 @@ func resourceMailgunDomain() *schema.Resource {
 			"smtp_password": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
+				ForceNew: false,
 				Computed: true,
 			},
 
@@ -126,6 +127,35 @@ func resourceMailgunDomainImport(ctx context.Context, d *schema.ResourceData, me
 	return []*schema.ResourceData{d}, nil
 }
 
+func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("name").(string))
+	if errc != nil {
+		return diag.FromErr(errc)
+	}
+
+	var currentData schema.ResourceData
+	var newPassword string = d.Get("smtp_password").(string)
+	var smtpLogin string = d.Get("smtp_login").(string)
+
+	// Retrieve and update state of domain
+	_, errc = resourceMailgunDomainRetrieve(d.Id(), client, &currentData)
+
+	if errc != nil {
+		return diag.FromErr(errc)
+	}
+
+	// Update default credential if changed
+	if currentData.Get("smtp_password") != newPassword {
+		errc = client.ChangeCredentialPassword(ctx, smtpLogin, newPassword)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+
+	return nil
+}
+
 func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
@@ -162,10 +192,10 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	return nil
 }
 
-func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunDomainDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
@@ -173,12 +203,12 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 	// Destroy the domain
 	err := client.DeleteDomain(context.Background(), d.Id())
 	if err != nil {
-		return fmt.Errorf("Error deleting domain: %s", err)
+		return diag.Errorf("Error deleting domain: %s", err)
 	}
 
 	// Give the destroy a chance to take effect
-	return resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
-		_, err = client.GetDomain(context.Background(), d.Id())
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err = client.GetDomain(ctx, d.Id())
 		if err == nil {
 			log.Printf("[INFO] Retrying until domain disappears...")
 			return resource.RetryableError(
@@ -187,19 +217,25 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 		log.Printf("[INFO] Got error looking for domain, seems gone: %s", err)
 		return nil
 	})
+
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunDomainRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	_, err := resourceMailgunDomainRetrieve(d.Id(), client, d)
 
 	if err != nil {
-		return err
+		return diag.FromErr(errc)
 	}
 
 	return nil
