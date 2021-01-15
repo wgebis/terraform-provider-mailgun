@@ -235,7 +235,7 @@ func resourceMailgunDomainRead(ctx context.Context, d *schema.ResourceData, meta
 	_, err := resourceMailgunDomainRetrieve(d.Id(), client, d)
 
 	if err != nil {
-		return diag.FromErr(errc)
+		return diag.FromErr(err)
 	}
 
 	return nil
