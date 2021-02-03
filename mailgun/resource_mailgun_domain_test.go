@@ -62,6 +62,7 @@ func TestAccMailgunDomain_Import(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{"dkim_key_size"},
 			},
 		},
 	})

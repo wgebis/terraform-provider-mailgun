@@ -18,6 +18,7 @@ resource "mailgun_domain" "default" {
   region        = "us"
   spam_action   = "disabled"
   smtp_password   = "supersecretpassword1234"
+  dkim_key_size   = 2048
 }
 ```
 
@@ -33,6 +34,7 @@ The following arguments are supported:
     will be tagged with a spam header.
 * `wildcard` - (Optional) Boolean that determines whether
     the domain will accept email for sub-domains.
+* `dkim_key_size` - (Optional) The length of your domain’s generated DKIM key. Default value is `1024`.
 
 ## Attributes Reference
 
