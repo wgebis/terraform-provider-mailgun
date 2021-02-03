@@ -18,7 +18,7 @@ resource "mailgun_domain" "default" {
   region        = "us"
   spam_action   = "disabled"
   smtp_password   = "supersecretpassword1234"
-  dkim_key_size   = 2048
+  dkim_key_size   = 1024
 }
 ```
 
