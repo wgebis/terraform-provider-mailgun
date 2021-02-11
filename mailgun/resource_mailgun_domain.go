@@ -109,6 +109,12 @@ func resourceMailgunDomain() *schema.Resource {
 					},
 				},
 			},
+			"dkim_key_size": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				ForceNew: true,
+				Default:  1024,
+			},
 		},
 	}
 }
@@ -169,6 +175,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.SpamAction = mailgun.SpamAction(d.Get("spam_action").(string))
 	opts.Password = d.Get("smtp_password").(string)
 	opts.Wildcard = d.Get("wildcard").(bool)
+	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
