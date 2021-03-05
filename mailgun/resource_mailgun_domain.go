@@ -113,7 +113,6 @@ func resourceMailgunDomain() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: true,
-				Default:  1024,
 			},
 		},
 	}
