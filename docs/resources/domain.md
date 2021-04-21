@@ -19,6 +19,7 @@ resource "mailgun_domain" "default" {
   spam_action   = "disabled"
   smtp_password   = "supersecretpassword1234"
   dkim_key_size   = 1024
+  dkim_selector   = "dki"
 }
 ```
 
@@ -35,6 +36,7 @@ The following arguments are supported:
 * `wildcard` - (Optional) Boolean that determines whether
     the domain will accept email for sub-domains.
 * `dkim_key_size` - (Optional) The length of your domain’s generated DKIM key. Default value is `1024`.
+* `dkim_selector` - (Optional) The name of your DKIM selector if you want to specify it whereas MailGun will make it's own choice.
 
 ## Attributes Reference
 
