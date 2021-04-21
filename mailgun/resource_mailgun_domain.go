@@ -60,6 +60,12 @@ func resourceMailgunDomain() *schema.Resource {
 				Optional: true,
 			},
 
+			"dkim_selector": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+			},
+
 			"receiving_records": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
@@ -175,6 +181,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.Password = d.Get("smtp_password").(string)
 	opts.Wildcard = d.Get("wildcard").(bool)
 	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
+	var dkimSelector = d.Get("dkim_selector").(string)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
@@ -182,6 +189,14 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if dkimSelector != "" {
+		errc = client.UpdateDomainDkimSelector(ctx, d.Get("name").(string), dkimSelector)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
 	}
 
 	d.SetId(name)
