@@ -253,8 +253,8 @@ github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+
 github.com/mailgun/mailgun-go v1.1.1 h1:mjMcm4qz+SbjAYbGJ6DKROViKtO5S0YjpuOUxQfdr2A=
 github.com/mailgun/mailgun-go v2.0.0+incompatible h1:0FoRHWwMUctnd8KIR3vtZbqdfjpIMxOZgcSa51s8F8o=
 github.com/mailgun/mailgun-go v2.0.0+incompatible/go.mod h1:NWTyU+O4aczg/nsGhQnvHL6v2n5Gy6Sv5tNDVvC6FbU=
-github.com/mailgun/mailgun-go/v3 v3.6.4 h1:+cvbZRgLSHivbz/w1iWLmxVl6Bqf4geD2D7QMj4+8PE=
-github.com/mailgun/mailgun-go/v3 v3.6.4/go.mod h1:ZjVnH8S0dR2BLjvkZc/rxwerdcirzlA12LQDuGAadR0=
+github.com/mailgun/mailgun-go/v4 v3.6.4 h1:+cvbZRgLSHivbz/w1iWLmxVl6Bqf4geD2D7QMj4+8PE=
+github.com/mailgun/mailgun-go/v4 v3.6.4/go.mod h1:ZjVnH8S0dR2BLjvkZc/rxwerdcirzlA12LQDuGAadR0=
 github.com/mailgun/mailgun-go/v4 v4.3.0 h1:9nAF7LI3k6bfDPbMZQMMl63Q8/vs+dr1FUN8eR1XMhk=
 github.com/mailgun/mailgun-go/v4 v4.3.0/go.mod h1:fWuBI2iaS/pSSyo6+EBpHjatQO3lV8onwqcRy7joSJI=
 github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 h1:2gxZ0XQIU/5z3Z3bUBu+FXuk2pFbkN6tcwi/pjyaDic=
