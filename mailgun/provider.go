@@ -24,8 +24,9 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"mailgun_domain": resourceMailgunDomain(),
-			"mailgun_route":  resourceMailgunRoute(),
+			"mailgun_domain":     resourceMailgunDomain(),
+			"mailgun_route":      resourceMailgunRoute(),
+			"mailgun_credential": resourceMailgunCredential(),
 		},
 	}
 
