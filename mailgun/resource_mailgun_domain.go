@@ -63,7 +63,7 @@ func resourceMailgunDomain() *schema.Resource {
 			"dkim_selector": {
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
+				ForceNew: true,
 			},
 
 			"receiving_records": &schema.Schema{
