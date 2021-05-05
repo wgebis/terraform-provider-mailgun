@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mailgun/mailgun-go/v3"
+	"github.com/mailgun/mailgun-go/v4"
 )
 
 func resourceMailgunDomain() *schema.Resource {
@@ -58,6 +58,12 @@ func resourceMailgunDomain() *schema.Resource {
 				Type:     schema.TypeBool,
 				ForceNew: true,
 				Optional: true,
+			},
+
+			"dkim_selector": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"receiving_records": &schema.Schema{
@@ -175,6 +181,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.Password = d.Get("smtp_password").(string)
 	opts.Wildcard = d.Get("wildcard").(bool)
 	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
+	var dkimSelector = d.Get("dkim_selector").(string)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
@@ -182,6 +189,14 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 
 	if err != nil {
 		return diag.FromErr(err)
+	}
+
+	if dkimSelector != "" {
+		errc = client.UpdateDomainDkimSelector(ctx, d.Get("name").(string), dkimSelector)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
 	}
 
 	d.SetId(name)

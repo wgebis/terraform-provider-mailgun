@@ -2,7 +2,7 @@ package mailgun
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/mailgun/mailgun-go/v3"
+	"github.com/mailgun/mailgun-go/v4"
 	"log"
 	"strings"
 )
