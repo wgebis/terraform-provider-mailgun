@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
-	//"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -21,6 +18,8 @@ type mailgunCredential struct {
 }
 
 func resourceMailgunCredential() *schema.Resource {
+	log.Printf("[DEBUG] resourceMailgunCredential()")
+
 	return &schema.Resource{
 		CreateContext: resourceMailgunCredentialCreate,
 		Read:          resourceMailgunCredentialRead,
@@ -62,11 +61,13 @@ func resourceMailgunCredential() *schema.Resource {
 func resourceMailgunCredentialImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	// see route
 
+	log.Printf("[DEBUG] resourceMailgunCredentialImport()")
+
 	return nil, nil
 }
 
 func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
@@ -105,11 +106,13 @@ func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) e
 	// }
 	// see route
 
+	log.Printf("[DEBUG] resourceMailgunCredentialUpdate()")
+
 	return nil
 }
 
 func resourceMailgunCredentialDelete(d *schema.ResourceData, meta interface{}) error {
-	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
 	if errc != nil {
 		return errc
 	}
@@ -121,17 +124,7 @@ func resourceMailgunCredentialDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error deleting route: %s", err)
 	}
 
-	// Give the destroy a chance to take effect
-	return resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
-		err := client.DeleteCredential(context.Background(), email)
-		if err == nil {
-			log.Printf("[INFO] Retrying until credential disappears...")
-			return resource.RetryableError(
-				fmt.Errorf("credential seems to still exist; will check again"))
-		}
-		log.Printf("[INFO] Got error looking for credential, seems gone: %s", err)
-		return nil
-	})
+	return nil
 }
 
 func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) error {
@@ -140,6 +133,8 @@ func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) err
 	// 	return errc
 	// }
 	// see route
+
+	log.Printf("[DEBUG] resourceMailgunCredentialRead()")
 
 	return nil
 }

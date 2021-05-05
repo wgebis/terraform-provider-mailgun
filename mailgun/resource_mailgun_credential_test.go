@@ -50,7 +50,7 @@ func testAccCheckMailgunCrendentialDestroy(s *terraform.State) error {
 		route, err := client.MailgunClient.GetRoute(context.Background(), rs.Primary.ID)
 
 		if err == nil {
-			return fmt.Errorf("Route still exists: %#v", route)
+			return fmt.Errorf("Credential still exists: %#v", route)
 		}
 	}
 
@@ -66,7 +66,7 @@ func testAccCheckMailgunCredentialExists(n string, t *testing.T) resource.TestCh
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Route ID is set")
+			return fmt.Errorf("No Credential ID is set")
 		}
 
 		client := testAccProvider.Meta().(*Config)
@@ -99,7 +99,7 @@ func testAccCheckMailgunCredentialExists(n string, t *testing.T) resource.TestCh
 
 func testAccCheckMailgunCredentialConfigWithPassword(domain string) string {
 	return `resource "mailgun_credential" "foobar" {
-    domain = "` + domain + `"
+	domain = "` + domain + `"
 	email = "test@` + domain + `"
 	password = "supersecretpassword1234"
 	region = "us"
