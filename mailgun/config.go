@@ -31,7 +31,9 @@ func (c *Config) Client() (*Config, diag.Diagnostics) {
 func (c *Config) GetClientForDomain(Region string, Domain string) (*mailgun.MailgunImpl, error) {
 
 	c.MailgunClient = mailgun.NewMailgun(Domain, c.APIKey)
-	c.ConfigureBaseUrl(Region)
+	if Region != "" {
+		c.ConfigureBaseUrl(Region)
+	}
 
 	return c.MailgunClient, nil
 }
