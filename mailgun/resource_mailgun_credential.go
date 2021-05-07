@@ -34,7 +34,7 @@ func resourceMailgunCredential() *schema.Resource {
 			},
 			"password": {
 				Type:      schema.TypeString,
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
 			},
 		},
@@ -43,13 +43,13 @@ func resourceMailgunCredential() *schema.Resource {
 
 func resourceMailgunCredentialImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 
-	parts := strings.SplitN(d.Id(), ":", 2)
+	parts := strings.SplitN(d.Id(), "@", 2)
 
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return nil, fmt.Errorf("Failed to import domain credentials, invalid format")
 	} else {
-		d.Set("domain", parts[0])
-		d.Set("login", parts[1])
+		d.Set("domain", parts[1])
+		d.Set("login", parts[0])
 	}
 
 	return []*schema.ResourceData{d}, nil
@@ -85,7 +85,7 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.SetId(fmt.Sprintf("%s:%s", domain, login))
+	d.SetId(fmt.Sprintf("%s@%s", login, domain))
 
 	log.Printf("[INFO] credential ID: %s", d.Id())
 
