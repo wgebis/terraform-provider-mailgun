@@ -39,13 +39,13 @@ func resourceMailgunCredential() *schema.Resource {
 			"password": {
 				Type:     schema.TypeString,
 				ForceNew: false,
-				Optional: true,
+				Required: true,
 			},
 
 			"domain": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
+				ForceNew: true,
 			},
 
 			"region": {

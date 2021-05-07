@@ -2,8 +2,9 @@ package mailgun
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"log"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -24,9 +25,9 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"mailgun_domain":     resourceMailgunDomain(),
-			"mailgun_route":      resourceMailgunRoute(),
-			"mailgun_credential": resourceMailgunCredential(),
+			"mailgun_domain":            resourceMailgunDomain(),
+			"mailgun_route":             resourceMailgunRoute(),
+			"mailgun_domain_credential": resourceMailgunCredential(),
 		},
 	}
 
