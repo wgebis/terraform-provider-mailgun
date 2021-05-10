@@ -13,15 +13,8 @@ Provides a Mailgun domain credential resource. This can be used to create and ma
 resource "mailgun_domain_credential" "foobar" {
 	domain = "toto.com"
 	email = "test@toto.com"
-	manual_password = "supersecretpassword1234"
+	password = "supersecretpassword1234"
 	region = "us"
-}
-
-# Create a new Mailgun credential with auto-password generate
-# Region is "us" by default
-resource "mailgun_domain_credential" "foobar" {
-	domain = "toto.com"
-	email = "test@toto.com"
 }
 ```
 
@@ -31,7 +24,7 @@ The following arguments are supported:
 
 * `domain` - (Required) The domain to add credential of Mailgun.
 * `email` - (Required) The email address to create.
-* `manual_password` - (Optional) Password for user authentication. If no, password is generated. 
+* `password` - (Required) Password for user authentication.
 * `region` - (Optional) The region where domain will be created. Default value is `us`.
 
 ## Attributes Reference

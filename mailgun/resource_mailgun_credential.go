@@ -33,7 +33,7 @@ func resourceMailgunCredential() *schema.Resource {
 			"email": {
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: false,
+				ForceNew: true,
 			},
 
 			"password": {
@@ -94,19 +94,40 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 
 	d.SetId(email)
 
-	log.Printf("[INFO] Credential ID: %s", d.Id())
+	log.Printf("[INFO] Create credential ID: %s", d.Id())
 
 	return nil
 }
 
 func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) error {
-	// client, errc := meta.(*Config).GetClient(d.Get("region").(string))
-	// if errc != nil {
-	// 	return errc
-	// }
-	// see route
+	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	if errc != nil {
+		return errc
+	}
 
-	log.Printf("[DEBUG] resourceMailgunCredentialUpdate()")
+	email := d.Get("email").(string)
+	password := d.Get("password").(string)
+	domain := d.Get("domain").(string)
+	region := d.Get("region").(string)
+
+	cred := mailgunCredential{
+		Email:    email,
+		Password: "****",
+		Domain:   domain,
+		Region:   region,
+	}
+
+	log.Printf("[DEBUG] Credential update configuration: %#v", cred)
+
+	err := client.ChangeCredentialPassword(context.Background(), email, password)
+
+	if err != nil {
+		return err
+	}
+
+	d.SetId(email)
+
+	log.Printf("[INFO] Update credential ID: %s", d.Id())
 
 	return nil
 }

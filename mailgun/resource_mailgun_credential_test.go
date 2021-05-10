@@ -42,6 +42,50 @@ func TestAccMailgunDomainCredential_Basic(t *testing.T) {
 	})
 }
 
+func TestAccMailgunDomainCredential_Update(t *testing.T) {
+	domain := os.Getenv("MAILGUN_TEST_DOMAIN")
+
+	if domain == "" {
+		t.Fatal("MAILGUN_TEST_DOMAIN must be set for acceptance tests")
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunCrendentialDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckMailgunCredentialConfig(domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMailgunCredentialExists("mailgun_domain_credential.foobar"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "email", "test_crendential@"+domain),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "password", "supersecretpassword1234"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "region", "us"),
+				),
+			},
+			{
+				Config: testAccCheckMailgunCredentialConfigUpdate(domain),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMailgunCredentialExists("mailgun_domain_credential.foobar"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "domain", domain),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "email", "test_crendential@"+domain),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "password", "azertyuyiop123456987"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain_credential.foobar", "region", "us"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckMailgunCrendentialDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*Config)
 
@@ -115,6 +159,15 @@ func testAccCheckMailgunCredentialConfig(domain string) string {
 	domain = "` + domain + `"
 	email = "test_crendential@` + domain + `"
 	password = "supersecretpassword1234"
+	region = "us"
+}`
+}
+
+func testAccCheckMailgunCredentialConfigUpdate(domain string) string {
+	return `resource "mailgun_domain_credential" "foobar" {
+	domain = "` + domain + `"
+	email = "test_crendential@` + domain + `"
+	password = "azertyuyiop123456987"
 	region = "us"
 }`
 }
