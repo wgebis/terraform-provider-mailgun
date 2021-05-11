@@ -16,7 +16,6 @@ import (
 type mailgunCredential struct {
 	Email    string
 	Region   string
-	Domain   string
 	Password string
 }
 
@@ -33,16 +32,17 @@ func resourceMailgunCredential() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"email": {
+			"login": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 
 			"password": {
-				Type:     schema.TypeString,
-				ForceNew: false,
-				Required: true,
+				Type:      schema.TypeString,
+				ForceNew:  false,
+				Required:  true,
+				Sensitive: true,
 			},
 
 			"domain": {
@@ -64,11 +64,28 @@ func resourceMailgunCredential() *schema.Resource {
 func resourceMailgunCredentialImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	parts := strings.SplitN(d.Id(), ":", 2)
 
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+	if len(parts) == 1 {
+		// No region set
 		d.Set("region", "us")
-	} else {
-		d.Set("region", parts[0])
+		d.SetId(strings.TrimSpace(d.Id()))
+	} else if len(parts) == 2 {
+		// If region set but with empty value
+		parts[0] = strings.TrimSpace(parts[0])
+		parts[1] = strings.TrimSpace(parts[1])
+
+		if parts[1] == "" {
+			return nil, fmt.Errorf("Failed to import domain credentials, format must be [region]:email")
+		}
+
+		if parts[0] == "" {
+			d.Set("region", "us")
+		} else {
+			d.Set("region", parts[0])
+		}
+
 		d.SetId(parts[1])
+	} else {
+		return nil, fmt.Errorf("Failed to import domain credentials, format must be [region]:email")
 	}
 
 	log.Printf("[DEBUG] Import credential for region '%s' and email '%s'", d.Get("region"), d.Id())
@@ -82,15 +99,13 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 		return diag.FromErr(errc)
 	}
 
-	email := d.Get("email").(string)
+	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	password := d.Get("password").(string)
-	domain := d.Get("domain").(string)
 	region := d.Get("region").(string)
 
 	cred := mailgunCredential{
 		Email:    email,
 		Password: "****",
-		Domain:   domain,
 		Region:   region,
 	}
 
@@ -115,15 +130,13 @@ func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) e
 		return errc
 	}
 
-	email := d.Get("email").(string)
+	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	password := d.Get("password").(string)
-	domain := d.Get("domain").(string)
 	region := d.Get("region").(string)
 
 	cred := mailgunCredential{
 		Email:    email,
 		Password: "****",
-		Domain:   domain,
 		Region:   region,
 	}
 
@@ -148,7 +161,7 @@ func resourceMailgunCredentialDelete(d *schema.ResourceData, meta interface{}) e
 		return errc
 	}
 
-	email := d.Get("email").(string)
+	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	err := client.DeleteCredential(context.Background(), email)
 
 	if err != nil {
@@ -165,6 +178,7 @@ func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("The ID of credential '%s' don't contains domain!", d.Id())
 	}
 
+	login := parts[0]
 	domain := parts[1]
 
 	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), domain)
@@ -186,7 +200,7 @@ func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) err
 
 		for _, c := range page {
 			if c.Login == d.Id() {
-				d.Set("email", c.Login)
+				d.Set("login", login)
 				d.Set("domain", domain)
 				d.Set("password", c.Password)
 

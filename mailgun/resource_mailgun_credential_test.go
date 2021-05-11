@@ -31,7 +31,7 @@ func TestAccMailgunDomainCredential_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain_credential.foobar", "email", "test_crendential@"+domain),
+						"mailgun_domain_credential.foobar", "login", "test_crendential"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "password", "supersecretpassword1234"),
 					resource.TestCheckResourceAttr(
@@ -61,7 +61,7 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain_credential.foobar", "email", "test_crendential@"+domain),
+						"mailgun_domain_credential.foobar", "login", "test_crendential"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "password", "supersecretpassword1234"),
 					resource.TestCheckResourceAttr(
@@ -75,7 +75,7 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain_credential.foobar", "email", "test_crendential@"+domain),
+						"mailgun_domain_credential.foobar", "login", "test_crendential"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "password", "azertyuyiop123456987"),
 					resource.TestCheckResourceAttr(
@@ -157,7 +157,7 @@ func testAccCheckMailgunCredentialExists(n string) resource.TestCheckFunc {
 func testAccCheckMailgunCredentialConfig(domain string) string {
 	return `resource "mailgun_domain_credential" "foobar" {
 	domain = "` + domain + `"
-	email = "test_crendential@` + domain + `"
+	login = "test_crendential"
 	password = "supersecretpassword1234"
 	region = "us"
 }`
@@ -166,7 +166,7 @@ func testAccCheckMailgunCredentialConfig(domain string) string {
 func testAccCheckMailgunCredentialConfigUpdate(domain string) string {
 	return `resource "mailgun_domain_credential" "foobar" {
 	domain = "` + domain + `"
-	email = "test_crendential@` + domain + `"
+	login = "test_crendential"
 	password = "azertyuyiop123456987"
 	region = "us"
 }`
