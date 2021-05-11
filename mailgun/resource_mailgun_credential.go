@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/mailgun/mailgun-go/v3"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -59,11 +62,18 @@ func resourceMailgunCredential() *schema.Resource {
 }
 
 func resourceMailgunCredentialImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// see route
+	parts := strings.SplitN(d.Id(), ":", 2)
 
-	log.Printf("[DEBUG] resourceMailgunCredentialImport()")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		d.Set("region", "us")
+	} else {
+		d.Set("region", parts[0])
+		d.SetId(parts[1])
+	}
 
-	return nil, nil
+	log.Printf("[DEBUG] Import credential for region '%s' and email '%s'", d.Get("region"), d.Id())
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -149,13 +159,45 @@ func resourceMailgunCredentialDelete(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) error {
-	// client, errc := meta.(*Config).GetClient(d.Get("region").(string))
-	// if errc != nil {
-	// 	return errc
-	// }
-	// see route
+	parts := strings.SplitN(d.Id(), "@", 2)
 
-	log.Printf("[DEBUG] resourceMailgunCredentialRead()")
+	if len(parts) != 2 {
+		return fmt.Errorf("The ID of credential '%s' don't contains domain!", d.Id())
+	}
 
-	return nil
+	domain := parts[1]
+
+	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), domain)
+	if errc != nil {
+		return errc
+	}
+
+	log.Printf("[DEBUG] Read credential for region '%s' and email '%s'", d.Get("region"), d.Id())
+
+	itCredentials := client.ListCredentials(nil)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	var page []mailgun.Credential
+
+	for itCredentials.Next(ctx, &page) {
+		log.Printf("[DEBUG] Read credential get new page")
+
+		for _, c := range page {
+			if c.Login == d.Id() {
+				d.Set("email", c.Login)
+				d.Set("domain", domain)
+				d.Set("password", c.Password)
+
+				return nil
+			}
+		}
+	}
+
+	if err := itCredentials.Err(); err != nil {
+		return err
+	}
+
+	return fmt.Errorf("The credential '%s' not found!", d.Id())
 }
