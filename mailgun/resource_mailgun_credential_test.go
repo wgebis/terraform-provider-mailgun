@@ -3,21 +3,19 @@ package mailgun
 import (
 	"context"
 	"fmt"
-	"os"
+	"github.com/hashicorp/go-uuid"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/mailgun/mailgun-go/v3"
+	"github.com/mailgun/mailgun-go/v4"
 )
 
 func TestAccMailgunDomainCredential_Basic(t *testing.T) {
-	domain := os.Getenv("MAILGUN_TEST_DOMAIN")
 
-	if domain == "" {
-		t.Fatal("MAILGUN_TEST_DOMAIN must be set for acceptance tests")
-	}
+	uuid, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraformcred.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -37,17 +35,17 @@ func TestAccMailgunDomainCredential_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "region", "us"),
 				),
+				// due to Mailgun Client API limitation (unable to retrieve secrets)
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
 }
 
 func TestAccMailgunDomainCredential_Update(t *testing.T) {
-	domain := os.Getenv("MAILGUN_TEST_DOMAIN")
 
-	if domain == "" {
-		t.Fatal("MAILGUN_TEST_DOMAIN must be set for acceptance tests")
-	}
+	uuid, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraform.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -67,6 +65,8 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "region", "us"),
 				),
+				// due to Mailgun Client API limitation (unable to retrieve secrets)
+				ExpectNonEmptyPlan: true,
 			},
 			{
 				Config: testAccCheckMailgunCredentialConfigUpdate(domain),
@@ -81,20 +81,23 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "region", "us"),
 				),
+				// due to Mailgun Client API limitation (unable to retrieve secrets)
+				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
 }
 
 func testAccCheckMailgunCrendentialDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_domain_credential" {
 			continue
 		}
 
-		itCredentials := client.MailgunClient.ListCredentials(nil)
+		client, _ := testAccProvider.Meta().(*Config).GetClientForDomain(rs.Primary.Attributes["region"], rs.Primary.Attributes["domain"])
+
+		itCredentials := client.ListCredentials(nil)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 		defer cancel()
@@ -130,8 +133,9 @@ func testAccCheckMailgunCredentialExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No domain credential ID is set")
 		}
 
-		client := testAccProvider.Meta().(*Config)
-		itCredentials := client.MailgunClient.ListCredentials(nil)
+		client, _ := testAccProvider.Meta().(*Config).GetClientForDomain(rs.Primary.Attributes["region"], rs.Primary.Attributes["domain"])
+
+		itCredentials := client.ListCredentials(nil)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 		defer cancel()
@@ -155,8 +159,17 @@ func testAccCheckMailgunCredentialExists(n string) resource.TestCheckFunc {
 }
 
 func testAccCheckMailgunCredentialConfig(domain string) string {
-	return `resource "mailgun_domain_credential" "foobar" {
-	domain = "` + domain + `"
+	return `
+resource "mailgun_domain" "foobar" {
+    name = "` + domain + `"
+	spam_action = "disabled"
+	smtp_password = "supersecretpassword1234"
+	region = "us"
+    wildcard = true
+}
+
+resource "mailgun_domain_credential" "foobar" {
+	domain = mailgun_domain.foobar.id
 	login = "test_crendential"
 	password = "supersecretpassword1234"
 	region = "us"
@@ -164,8 +177,17 @@ func testAccCheckMailgunCredentialConfig(domain string) string {
 }
 
 func testAccCheckMailgunCredentialConfigUpdate(domain string) string {
-	return `resource "mailgun_domain_credential" "foobar" {
-	domain = "` + domain + `"
+	return `
+resource "mailgun_domain" "foobar" {
+    name = "` + domain + `"
+	spam_action = "disabled"
+	smtp_password = "supersecretpassword1234"
+	region = "us"
+    wildcard = true
+}
+
+resource "mailgun_domain_credential" "foobar" {
+	domain = mailgun_domain.foobar.id
 	login = "test_crendential"
 	password = "azertyuyiop123456987"
 	region = "us"

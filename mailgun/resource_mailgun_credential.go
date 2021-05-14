@@ -8,16 +8,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/mailgun/mailgun-go/v3"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/mailgun/mailgun-go/v4"
 )
-
-type mailgunCredential struct {
-	Email    string
-	Region   string
-	Password string
-}
 
 func resourceMailgunCredential() *schema.Resource {
 	log.Printf("[DEBUG] resourceMailgunCredential()")
@@ -62,31 +55,8 @@ func resourceMailgunCredential() *schema.Resource {
 }
 
 func resourceMailgunCredentialImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	parts := strings.SplitN(d.Id(), ":", 2)
 
-	if len(parts) == 1 {
-		// No region set
-		d.Set("region", "us")
-		d.SetId(strings.TrimSpace(d.Id()))
-	} else if len(parts) == 2 {
-		// If region set but with empty value
-		parts[0] = strings.TrimSpace(parts[0])
-		parts[1] = strings.TrimSpace(parts[1])
-
-		if parts[1] == "" {
-			return nil, fmt.Errorf("Failed to import domain credentials, format must be [region]:email")
-		}
-
-		if parts[0] == "" {
-			d.Set("region", "us")
-		} else {
-			d.Set("region", parts[0])
-		}
-
-		d.SetId(parts[1])
-	} else {
-		return nil, fmt.Errorf("Failed to import domain credentials, format must be [region]:email")
-	}
+	setDefaultRegionForImport(d)
 
 	log.Printf("[DEBUG] Import credential for region '%s' and email '%s'", d.Get("region"), d.Id())
 
@@ -101,15 +71,8 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 
 	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	password := d.Get("password").(string)
-	region := d.Get("region").(string)
 
-	cred := mailgunCredential{
-		Email:    email,
-		Password: "****",
-		Region:   region,
-	}
-
-	log.Printf("[DEBUG] Credential create configuration: %#v", cred)
+	log.Printf("[DEBUG] Credential create configuration: {email: %s, password: %s}", email, password)
 
 	err := client.CreateCredential(context.Background(), email, password)
 
@@ -132,15 +95,8 @@ func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) e
 
 	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	password := d.Get("password").(string)
-	region := d.Get("region").(string)
 
-	cred := mailgunCredential{
-		Email:    email,
-		Password: "****",
-		Region:   region,
-	}
-
-	log.Printf("[DEBUG] Credential update configuration: %#v", cred)
+	log.Printf("[DEBUG] Credential update configuration: {email: %s, password: %s}", email, password)
 
 	err := client.ChangeCredentialPassword(context.Background(), email, password)
 

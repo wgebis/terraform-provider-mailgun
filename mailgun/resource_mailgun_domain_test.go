@@ -21,7 +21,7 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 		ProviderFactories: newProvider(),
 		CheckDestroy:      testAccCheckMailgunDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckMailgunDomainConfig(domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMailgunDomainExists("mailgun_domain.foobar", &resp),
@@ -151,7 +151,8 @@ func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainRespons
 }
 
 func testAccCheckMailgunDomainConfig(domain string) string {
-	return `resource "mailgun_domain" "foobar" {
+	return `
+resource "mailgun_domain" "foobar" {
     name = "` + domain + `"
 	spam_action = "disabled"
 	smtp_password = "supersecretpassword1234"

@@ -6,6 +6,8 @@ page_title: "Mailgun: mailgun_domain"
 
 Provides a Mailgun domain credential resource. This can be used to create and manage credential in domain of Mailgun.
 
+~> **Note:** Please note that starting of v0.6.1 due to using new Mailgun Client API (v4), there is no possibility to retrieve previously created secrets via API. In order get it worked, it's recommended to mark `password` as ignored under `lifecycle` block. See below.
+
 ## Example Usage
 
 ```hcl
@@ -15,6 +17,10 @@ resource "mailgun_domain_credential" "foobar" {
 	email = "test@toto.com"
 	password = "supersecretpassword1234"
 	region = "us"
+	
+	lifecycle {
+	    ignore_changes = [ "password" ]
+	}
 }
 ```
 

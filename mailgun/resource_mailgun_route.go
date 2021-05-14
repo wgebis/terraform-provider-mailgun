@@ -3,15 +3,13 @@ package mailgun
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"log"
-	"strings"
 	"time"
 
-	"github.com/mailgun/mailgun-go/v4"
-
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/mailgun/mailgun-go/v4"
 )
 
 func resourceMailgunRoute() *schema.Resource {
@@ -61,14 +59,7 @@ func resourceMailgunRoute() *schema.Resource {
 
 func resourceMailgunRouteImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 
-	parts := strings.SplitN(d.Id(), ":", 2)
-
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		d.Set("region", "us")
-	} else {
-		d.Set("region", parts[0])
-		d.SetId(parts[1])
-	}
+	setDefaultRegionForImport(d)
 
 	return []*schema.ResourceData{d}, nil
 }

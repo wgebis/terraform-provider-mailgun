@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mailgun/mailgun-go/v4"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/mailgun/mailgun-go/v4"
 )
 
 func TestAccMailgunRoute_Basic(t *testing.T) {
@@ -20,7 +19,7 @@ func TestAccMailgunRoute_Basic(t *testing.T) {
 		ProviderFactories: newProvider(),
 		CheckDestroy:      testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckMailgunRouteConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckMailgunRouteExists("mailgun_route.foobar", &route),
@@ -47,11 +46,10 @@ func TestAccMailgunRoute_Import(t *testing.T) {
 		ProviderFactories: newProvider(),
 		CheckDestroy:      testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckMailgunRouteConfig,
 			},
-
-			resource.TestStep{
+			{
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
@@ -61,14 +59,15 @@ func TestAccMailgunRoute_Import(t *testing.T) {
 }
 
 func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_route" {
 			continue
 		}
 
-		route, err := client.MailgunClient.GetRoute(context.Background(), rs.Primary.ID)
+		client, _ := testAccProvider.Meta().(*Config).GetClientForDomain(rs.Primary.Attributes["region"], rs.Primary.Attributes["domain"])
+
+		route, err := client.GetRoute(context.Background(), rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Route still exists: %#v", route)
