@@ -121,7 +121,7 @@ func resourceMailgunCredentialDelete(d *schema.ResourceData, meta interface{}) e
 	err := client.DeleteCredential(context.Background(), email)
 
 	if err != nil {
-		return fmt.Errorf("Error deleting route: %s", err)
+		return fmt.Errorf("Error deleting credential: %s", err)
 	}
 
 	return nil
