@@ -72,7 +72,7 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	password := d.Get("password").(string)
 
-	log.Printf("[DEBUG] Credential create configuration: {email: %s, password: %s}", email, password)
+	log.Printf("[DEBUG] Credential create configuration: email: %s", email)
 
 	err := client.CreateCredential(context.Background(), email, password)
 
@@ -96,7 +96,7 @@ func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) e
 	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	password := d.Get("password").(string)
 
-	log.Printf("[DEBUG] Credential update configuration: {email: %s, password: %s}", email, password)
+	log.Printf("[DEBUG] Credential create configuration: email: %s", email)
 
 	err := client.ChangeCredentialPassword(context.Background(), email, password)
 
