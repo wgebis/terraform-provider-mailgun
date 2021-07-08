@@ -28,6 +28,7 @@ func Provider() *schema.Provider {
 			"mailgun_domain":            resourceMailgunDomain(),
 			"mailgun_route":             resourceMailgunRoute(),
 			"mailgun_domain_credential": resourceMailgunCredential(),
+			"mailgun_webhook":           resourceMailgunWebhook(),
 		},
 	}
 
