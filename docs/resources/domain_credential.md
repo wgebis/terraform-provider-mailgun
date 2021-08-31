@@ -13,14 +13,14 @@ Provides a Mailgun domain credential resource. This can be used to create and ma
 ```hcl
 # Create a new Mailgun credential
 resource "mailgun_domain_credential" "foobar" {
-	domain = "toto.com"
-	email = "test@toto.com"
-	password = "supersecretpassword1234"
-	region = "us"
-	
-	lifecycle {
-	    ignore_changes = [ "password" ]
-	}
+  domain   = "example.com"
+  login    = "test"
+  password = "supersecretpassword1234"
+  region   = "us"
+
+  lifecycle {
+    ignore_changes = [password]
+  }
 }
 ```
 
@@ -29,7 +29,7 @@ resource "mailgun_domain_credential" "foobar" {
 The following arguments are supported:
 
 * `domain` - (Required) The domain to add credential of Mailgun.
-* `email` - (Required) The email address to create.
+* `login` - (Required) The local-part of the email address to create.
 * `password` - (Required) Password for user authentication.
 * `region` - (Optional) The region where domain will be created. Default value is `us`.
 
@@ -38,7 +38,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `domain` - The name of the domain.
-* `email` - The email address.
+* `login` - The local-part of the email address.
 * `password` - Password for user authentication.
 * `region` - The name of the region.
 
@@ -48,5 +48,5 @@ Domain credential can be imported using `region:email` via `import` command. Reg
 Password is always exported to `null`.
 
 ```hcl
-terraform import mailgun_domain_credential.test us:test@domain.com
+terraform import mailgun_domain_credential.test us:test@example.com
 ```

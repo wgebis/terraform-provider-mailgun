@@ -17,8 +17,8 @@ resource "mailgun_domain" "default" {
   name          = "test.example.com"
   region        = "us"
   spam_action   = "disabled"
-  smtp_password   = "supersecretpassword1234"
-  dkim_key_size   = 1024
+  smtp_password = "supersecretpassword1234"
+  dkim_key_size = 1024
 }
 ```
 
@@ -63,5 +63,5 @@ The following attributes are exported:
 Domains can be imported using `region:domain_name` via `import` command. Region has to be chosen from `eu` or `us` (when no selection `us` is applied). 
 
 ```hcl
-terraform import mailgun_domain.test us:example.domain.com
+terraform import mailgun_domain.test us:subdomain.example.com
 ```

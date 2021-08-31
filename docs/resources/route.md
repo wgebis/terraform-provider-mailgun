@@ -11,13 +11,13 @@ Provides a Mailgun Route resource. This can be used to create and manage routes 
 ```hcl
 # Create a new Mailgun route
 resource "mailgun_route" "default" {
-    priority = "0"
-    description = "inbound"
-    expression = "match_recipient('.*@foo.example.com')"
-    actions = [
-        "forward('http://example.com/api/v1/foos/')",
-        "stop()"
-    ]
+  priority    = "0"
+  description = "inbound"
+  expression  = "match_recipient('.*@foo.example.com')"
+  actions = [
+    "forward('http://example.com/api/v1/foos/')",
+    "stop()"
+  ]
 }
 ```
 
@@ -26,7 +26,7 @@ resource "mailgun_route" "default" {
 The following arguments are supported:
 * `priority` - (Required) Smaller number indicates higher priority. Higher priority routes are handled first.
 * `description` - (Required)
-* `expression` - (Required) A filter expression like `match_recipient('.*@gmail.com')`
+* `expression` - (Required) A filter expression like `match_recipient('.*@example.com')`
 * `action` - (Required) Route action. This action is executed when the expression evaluates to True. Example: `forward("alice@example.com")` You can pass multiple `action` parameters.
 * `region` - (Optional) The region where domain will be created. Default value is `us`.
 

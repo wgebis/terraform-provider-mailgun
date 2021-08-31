@@ -14,8 +14,8 @@ data "mailgun_domain" "domain" {
 }
 
 resource "aws_route53_record" "mailgun-mx" {
-  zone_id = "${var.zone_id}"
-  name    = "${data.mailgun.domain.name}"
+  zone_id = var.zone_id
+  name    = data.mailgun.domain.name
   type    = "MX"
   ttl     = 3600
   records = [
