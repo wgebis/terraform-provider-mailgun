@@ -60,8 +60,16 @@ func testAccCheckMailgunWebhookDestroy(s *terraform.State) error {
 
 func testAccCheckMailgunWebhookConfig(domain string) string {
 	return `
+resource "mailgun_domain" "foobar" {
+    name = "` + domain + `"
+	spam_action = "disabled"
+	smtp_password = "supersecretpassword1234"
+	region = "us"
+    wildcard = true
+}
+
 resource "mailgun_webhook" "foobar" {
-  domain = "` + domain + `"
+  domain = mailgun_domain.foobar.id
   region = "us"
   kind = "delivered"
   urls = ["https://hoge.com"]

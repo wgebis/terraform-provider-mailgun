@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -37,19 +36,19 @@ func resourceMailgunWebhook() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: false,
 				Required: true,
-				ValidateDiagFunc: func(val interface{}, _ cty.Path) diag.Diagnostics {
+				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 					v := val.(string)
-					alllowedKinds := []string{"clicked", "complained", "delivered", "opened", "permanent_fail", "temporary_fail", "unsubscribed"}
+					allowedKinds := []string{"clicked", "complained", "delivered", "opened", "permanent_fail", "temporary_fail", "unsubscribed"}
 					matched := false
-					for _, kind := range alllowedKinds {
+					for _, kind := range allowedKinds {
 						if kind == v {
 							matched = true
 						}
 					}
 					if !matched {
-						return diag.Errorf("kind must be %s", alllowedKinds)
+						errs = append(errs, fmt.Errorf("kind must be %s", allowedKinds))
 					}
-					return nil
+					return
 				},
 			},
 
