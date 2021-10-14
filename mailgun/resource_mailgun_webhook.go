@@ -34,7 +34,7 @@ func resourceMailgunWebhook() *schema.Resource {
 
 			"kind": {
 				Type:     schema.TypeString,
-				ForceNew: false,
+				ForceNew: true,
 				Required: true,
 				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 					v := val.(string)
