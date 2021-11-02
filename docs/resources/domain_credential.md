@@ -14,7 +14,7 @@ Provides a Mailgun domain credential resource. This can be used to create and ma
 # Create a new Mailgun credential
 resource "mailgun_domain_credential" "foobar" {
 	domain = "toto.com"
-	email = "test@toto.com"
+	login = "test"
 	password = "supersecretpassword1234"
 	region = "us"
 	
@@ -29,7 +29,7 @@ resource "mailgun_domain_credential" "foobar" {
 The following arguments are supported:
 
 * `domain` - (Required) The domain to add credential of Mailgun.
-* `email` - (Required) The email address to create.
+* `login` - (Required) The local-part of the email address to create.
 * `password` - (Required) Password for user authentication.
 * `region` - (Optional) The region where domain will be created. Default value is `us`.
 
