@@ -3,7 +3,10 @@ package mailgun
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
+	"hash/crc32"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -91,10 +94,15 @@ func resourceMailgunDomain() *schema.Resource {
 			},
 
 			"sending_records": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Computed: true,
+				Set:      acmDomainValidationOptionsHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"name": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -120,7 +128,55 @@ func resourceMailgunDomain() *schema.Resource {
 				ForceNew: true,
 			},
 		},
+		CustomizeDiff: customdiff.Sequence(
+			func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
+				if diff.HasChange("name") {
+					var items []interface{}
+
+					items = append(items, map[string]interface{}{"id": diff.Get("name").(string)})
+					items = append(items, map[string]interface{}{"id": "_domainkey." + diff.Get("name").(string)})
+					items = append(items, map[string]interface{}{"id": "email." + diff.Get("name").(string)})
+
+					if err := diff.SetNew("sending_records", schema.NewSet(acmDomainValidationOptionsHash, items)); err != nil {
+						return fmt.Errorf("error setting new domain_validation_options diff: %w", err)
+					}
+				}
+
+				return nil
+			},
+		),
 	}
+}
+
+// StringHashcode hashes a string to a unique hashcode.
+//
+// crc32 returns a uint32, but for our use we need
+// and non negative integer. Here we cast to an integer
+// and invert it if the result is negative.
+func StringHashcode(s string) int {
+	v := int(crc32.ChecksumIEEE([]byte(s)))
+	if v >= 0 {
+		return v
+	}
+	if -v >= 0 {
+		return -v
+	}
+	// v == MinInt
+	return 0
+}
+
+func acmDomainValidationOptionsHash(v interface{}) int {
+	m, ok := v.(map[string]interface{})
+
+	if !ok {
+		return 0
+	}
+
+	if v, ok := m["id"].(string); ok {
+		return StringHashcode(v)
+	}
+
+	return 0
 }
 
 func resourceMailgunDomainImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -281,10 +337,15 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *sc
 	sendingRecords := make([]map[string]interface{}, len(resp.SendingDNSRecords))
 	for i, r := range resp.SendingDNSRecords {
 		sendingRecords[i] = make(map[string]interface{})
+		sendingRecords[i]["id"] = r.Name
 		sendingRecords[i]["name"] = r.Name
 		sendingRecords[i]["valid"] = r.Valid
 		sendingRecords[i]["value"] = r.Value
 		sendingRecords[i]["record_type"] = r.RecordType
+
+		if strings.Contains(r.Name, "._domainkey.") {
+			sendingRecords[i]["id"] = "_domainkey." + resp.Domain.Name
+		}
 	}
 	d.Set("sending_records", sendingRecords)
 
