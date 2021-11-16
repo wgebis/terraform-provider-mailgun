@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
-	"hash/crc32"
 	"log"
 	"strings"
 	"time"
@@ -162,23 +161,6 @@ func resourceMailgunDomain() *schema.Resource {
 	}
 }
 
-// StringHashcode hashes a string to a unique hashcode.
-//
-// crc32 returns a uint32, but for our use we need
-// and non negative integer. Here we cast to an integer
-// and invert it if the result is negative.
-func StringHashcode(s string) int {
-	v := int(crc32.ChecksumIEEE([]byte(s)))
-	if v >= 0 {
-		return v
-	}
-	if -v >= 0 {
-		return -v
-	}
-	// v == MinInt
-	return 0
-}
-
 func domainRecordsSchemaSetFunc(v interface{}) int {
 	m, ok := v.(map[string]interface{})
 
@@ -187,7 +169,7 @@ func domainRecordsSchemaSetFunc(v interface{}) int {
 	}
 
 	if v, ok := m["id"].(string); ok {
-		return StringHashcode(v)
+		return stringHashcode(v)
 	}
 
 	return 0
