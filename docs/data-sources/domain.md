@@ -27,7 +27,8 @@ resource "aws_route53_record" "mailgun-mx" {
 
 ## Argument Reference
 
-* `name` - The name of the domain.
+* `name` - (Required) The name of the domain.
+* `region` - (Optional) The region where domain will be created. Default value is `us`.
 
 ## Attributes Reference
 
