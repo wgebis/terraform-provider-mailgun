@@ -119,6 +119,11 @@ func resourceMailgunDomain() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"force_dkim_authority": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -173,6 +178,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.Password = d.Get("smtp_password").(string)
 	opts.Wildcard = d.Get("wildcard").(bool)
 	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
+	opts.ForceDKIMAuthority = d.Get("force_dkim_authority").(bool)
 	var dkimSelector = d.Get("dkim_selector").(string)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
