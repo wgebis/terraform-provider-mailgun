@@ -36,6 +36,8 @@ The following arguments are supported:
     the domain will accept email for sub-domains.
 * `dkim_key_size` - (Optional) The length of your domain’s generated DKIM key. Default value is `1024`.
 * `dkim_selector` - (Optional) The name of your DKIM selector if you want to specify it whereas MailGun will make it's own choice.
+* `click_tracking` - (Optional) (Enum: `yes`, `no` or `htmlonly`) The click tracking settings for the domain.
+* `open_tracking` - (Optional) (Enum: `yes` or `no`) The open tracking settings for the domain.
 
 ## Attributes Reference
 
@@ -60,7 +62,7 @@ The following attributes are exported:
 
 ## Import
 
-Domains can be imported using `region:domain_name` via `import` command. Region has to be chosen from `eu` or `us` (when no selection `us` is applied). 
+Domains can be imported using `region:domain_name` via `import` command. Region has to be chosen from `eu` or `us` (when no selection `us` is applied).
 
 ```hcl
 terraform import mailgun_domain.test us:example.domain.com

@@ -119,6 +119,30 @@ func resourceMailgunDomain() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"click_tracking": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				ValidateFunc: func(val any, key string) (warns []string, errs []error) {
+					v := val.(string)
+					if v != "yes" && v != "no" && v != "htmlonly" {
+						errs = append(errs, fmt.Errorf("%q must be equal to yes, no or htmlonly, got: %s", key, v))
+					}
+					return
+				},
+			},
+			"open_tracking": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				ValidateFunc: func(val any, key string) (warns []string, errs []error) {
+					v := val.(string)
+					if v != "yes" && v != "no" {
+						errs = append(errs, fmt.Errorf("%q must be equal to yes or no, got: %s", key, v))
+					}
+					return
+				},
+			},
 		},
 	}
 }
@@ -139,6 +163,8 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 	var currentData schema.ResourceData
 	var newPassword string = d.Get("smtp_password").(string)
 	var smtpLogin string = d.Get("smtp_login").(string)
+	var clickTracking = d.Get("click_tracking").(string)
+	var openTracking = d.Get("open_tracking").(string)
 
 	// Retrieve and update state of domain
 	_, errc = resourceMailgunDomainRetrieve(d.Id(), client, &currentData)
@@ -150,6 +176,29 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 	// Update default credential if changed
 	if currentData.Get("smtp_password") != newPassword {
 		errc = client.ChangeCredentialPassword(ctx, smtpLogin, newPassword)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+
+	if currentData.Get("click_tracking") != clickTracking {
+		var clickTrackingValue = clickTracking
+		if clickTracking == "" {
+			clickTrackingValue = "no"
+		}
+		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), clickTrackingValue)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+	if currentData.Get("open_tracking") != openTracking {
+		var openTrackingValue = openTracking
+		if clickTracking == "" {
+			openTrackingValue = "no"
+		}
+		errc = client.UpdateOpenTracking(ctx, d.Get("name").(string), openTrackingValue)
 
 		if errc != nil {
 			return diag.FromErr(errc)
@@ -174,6 +223,8 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.Wildcard = d.Get("wildcard").(bool)
 	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
 	var dkimSelector = d.Get("dkim_selector").(string)
+	var clickTracking = d.Get("click_tracking").(string)
+	var openTracking = d.Get("open_tracking").(string)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
@@ -185,6 +236,20 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 
 	if dkimSelector != "" {
 		errc = client.UpdateDomainDkimSelector(ctx, d.Get("name").(string), dkimSelector)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+	if clickTracking != "no" && clickTracking != "" {
+		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), clickTracking)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+	if openTracking != "no" && openTracking != "" {
+		errc = client.UpdateOpenTracking(ctx, d.Get("name").(string), openTracking)
 
 		if errc != nil {
 			return diag.FromErr(errc)
@@ -287,6 +352,10 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *sc
 		sendingRecords[i]["record_type"] = r.RecordType
 	}
 	d.Set("sending_records", sendingRecords)
+
+	info, err := client.GetDomainTracking(context.Background(), id)
+	d.Set("click_tracking", info.Click.Active)
+	d.Set("open_tracking", info.Open.Active)
 
 	return &resp, nil
 }
