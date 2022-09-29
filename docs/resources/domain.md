@@ -36,8 +36,8 @@ The following arguments are supported:
     the domain will accept email for sub-domains.
 * `dkim_key_size` - (Optional) The length of your domain’s generated DKIM key. Default value is `1024`.
 * `dkim_selector` - (Optional) The name of your DKIM selector if you want to specify it whereas MailGun will make it's own choice.
-* `click_tracking` - (Optional) (Enum: `yes`, `no` or `htmlonly`) The click tracking settings for the domain.
-* `open_tracking` - (Optional) (Enum: `yes` or `no`) The open tracking settings for the domain.
+* `click_tracking` - (Optional) (Enum: `yes`, `no` or `htmlonly`) The click tracking settings for the domain. Default: `no`
+* `open_tracking` - (Optional) (Enum: `yes` or `no`) The open tracking settings for the domain. Default: `no`
 
 ## Attributes Reference
 
