@@ -36,7 +36,7 @@ The following arguments are supported:
     the domain will accept email for sub-domains.
 * `dkim_key_size` - (Optional) The length of your domain’s generated DKIM key. Default value is `1024`.
 * `dkim_selector` - (Optional) The name of your DKIM selector if you want to specify it whereas MailGun will make it's own choice.
-* `force_dkim_authority` - (Optional) If set to true, the domain will be the DKIM authority for itself even if the root domain is registered on the same mailgun account. If set to false, the domain will have the same DKIM authority as the root domain registered on the same mailgun account
+* `force_dkim_authority` - (Optional) If set to true, the domain will be the DKIM authority for itself even if the root domain is registered on the same mailgun account. If set to false, the domain will have the same DKIM authority as the root domain registered on the same mailgun account. The default is `false`.
 
 ## Attributes Reference
 
