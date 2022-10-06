@@ -8,7 +8,6 @@ import (
 )
 
 // Config struct holds API key
-//
 type Config struct {
 	APIKey string
 	//Region        string
@@ -17,7 +16,6 @@ type Config struct {
 }
 
 // Client returns a new client for accessing mailgun.
-//
 func (c *Config) Client() (*Config, diag.Diagnostics) {
 
 	log.Printf("[INFO] Mailgun Client configured ")

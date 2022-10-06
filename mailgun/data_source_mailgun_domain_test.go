@@ -50,10 +50,6 @@ func testAccDataSourceMailgunDomainCheck(name string, domain string) resource.Te
 			return fmt.Errorf("Bad wildcard: %s", attr["wildcard"])
 		}
 
-		if attr["smtp_password"] == "" {
-			return fmt.Errorf("Bad smtp_password: %s", attr["smtp_password"])
-		}
-
 		return nil
 	}
 }
@@ -63,7 +59,6 @@ func testAccMailgunDomainDataSourceConfig_Basic(domain string) string {
 resource "mailgun_domain" "foobar" {
 	name = "%s"
 	spam_action = "disabled"
-	smtp_password = "foobarsupersecretpassword"
 	wildcard = false
 }
 data "mailgun_domain" "test" {

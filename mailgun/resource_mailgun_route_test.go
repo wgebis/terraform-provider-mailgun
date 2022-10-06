@@ -91,7 +91,7 @@ func testAccCheckMailgunRouteExists(n string, Route *mailgun.Route) resource.Tes
 
 		client := testAccProvider.Meta().(*Config)
 
-		err := resource.Retry(1*time.Minute, func() *resource.RetryError {
+		err := resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
 			var err error
 			*Route, err = client.MailgunClient.GetRoute(context.Background(), rs.Primary.ID)
 

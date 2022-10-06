@@ -63,7 +63,6 @@ func testAccCheckMailgunWebhookConfig(domain string) string {
 resource "mailgun_domain" "foobar" {
     name = "` + domain + `"
 	spam_action = "disabled"
-	smtp_password = "supersecretpassword1234"
 	region = "us"
     wildcard = true
 }

@@ -163,7 +163,6 @@ func testAccCheckMailgunCredentialConfig(domain string) string {
 resource "mailgun_domain" "foobar" {
     name = "` + domain + `"
 	spam_action = "disabled"
-	smtp_password = "supersecretpassword1234"
 	region = "us"
     wildcard = true
 }
@@ -181,7 +180,6 @@ func testAccCheckMailgunCredentialConfigUpdate(domain string) string {
 resource "mailgun_domain" "foobar" {
     name = "` + domain + `"
 	spam_action = "disabled"
-	smtp_password = "supersecretpassword1234"
 	region = "us"
     wildcard = true
 }
