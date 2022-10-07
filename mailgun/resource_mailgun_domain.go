@@ -96,7 +96,7 @@ func resourceMailgunDomain() *schema.Resource {
 			"sending_records": &schema.Schema{
 				Type:     schema.TypeSet,
 				Computed: true,
-				Set:      domainRecordsSchemaSetFunc,
+				Set:      acmDomainValidationOptionsHash,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -137,8 +137,8 @@ func resourceMailgunDomain() *schema.Resource {
 					items = append(items, map[string]interface{}{"id": "_domainkey." + diff.Get("name").(string)})
 					items = append(items, map[string]interface{}{"id": "email." + diff.Get("name").(string)})
 
-					if err := diff.SetNew("sending_records", schema.NewSet(domainRecordsSchemaSetFunc, items)); err != nil {
-						return fmt.Errorf("error setting new sending_records diff: %w", err)
+					if err := diff.SetNew("sending_records", schema.NewSet(acmDomainValidationOptionsHash, items)); err != nil {
+						return fmt.Errorf("error setting new domain_validation_options diff: %w", err)
 					}
 				}
 
@@ -165,7 +165,7 @@ func StringHashcode(s string) int {
 	return 0
 }
 
-func domainRecordsSchemaSetFunc(v interface{}) int {
+func acmDomainValidationOptionsHash(v interface{}) int {
 	m, ok := v.(map[string]interface{})
 
 	if !ok {
