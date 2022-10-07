@@ -69,15 +69,10 @@ func resourceMailgunDomain() *schema.Resource {
 			},
 
 			"receiving_records": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Computed: true,
-				Set:      domainRecordsSchemaSetFunc,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
 						"priority": {
 							Type:     schema.TypeString,
 							Computed: true,
@@ -136,23 +131,14 @@ func resourceMailgunDomain() *schema.Resource {
 		CustomizeDiff: customdiff.Sequence(
 			func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
 				if diff.HasChange("name") {
-					var sendingRecords []interface{}
+					var items []interface{}
 
-					sendingRecords = append(sendingRecords, map[string]interface{}{"id": diff.Get("name").(string)})
-					sendingRecords = append(sendingRecords, map[string]interface{}{"id": "_domainkey." + diff.Get("name").(string)})
-					sendingRecords = append(sendingRecords, map[string]interface{}{"id": "email." + diff.Get("name").(string)})
+					items = append(items, map[string]interface{}{"id": diff.Get("name").(string)})
+					items = append(items, map[string]interface{}{"id": "_domainkey." + diff.Get("name").(string)})
+					items = append(items, map[string]interface{}{"id": "email." + diff.Get("name").(string)})
 
-					if err := diff.SetNew("sending_records", schema.NewSet(domainRecordsSchemaSetFunc, sendingRecords)); err != nil {
+					if err := diff.SetNew("sending_records", schema.NewSet(domainRecordsSchemaSetFunc, items)); err != nil {
 						return fmt.Errorf("error setting new sending_records diff: %w", err)
-					}
-
-					var receivingRecords []interface{}
-
-					receivingRecords = append(receivingRecords, map[string]interface{}{"id": "mxa.mailgun.org"})
-					receivingRecords = append(receivingRecords, map[string]interface{}{"id": "mxb.mailgun.org"})
-
-					if err := diff.SetNew("receiving_records", schema.NewSet(domainRecordsSchemaSetFunc, receivingRecords)); err != nil {
-						return fmt.Errorf("error setting new receiving_records diff: %w", err)
 					}
 				}
 
@@ -341,7 +327,6 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *sc
 	receivingRecords := make([]map[string]interface{}, len(resp.ReceivingDNSRecords))
 	for i, r := range resp.ReceivingDNSRecords {
 		receivingRecords[i] = make(map[string]interface{})
-		receivingRecords[i]["id"] = r.Value
 		receivingRecords[i]["priority"] = r.Priority
 		receivingRecords[i]["valid"] = r.Valid
 		receivingRecords[i]["value"] = r.Value
