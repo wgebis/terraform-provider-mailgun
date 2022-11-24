@@ -52,7 +52,17 @@ The following attributes are exported:
     * `record_type` - The record type.
     * `valid` - `"valid"` if the record is valid.
     * `value` - The value of the record.
+* `receiving_records_set` - A set of DNS records for receiving validation.
+    * `priority` - The priority of the record.
+    * `record_type` - The record type.
+    * `valid` - `"valid"` if the record is valid.
+    * `value` - The value of the record.
 * `sending_records` - A list of DNS records for sending validation.
+    * `name` - The name of the record.
+    * `record_type` - The record type.
+    * `valid` - `"valid"` if the record is valid.
+    * `value` - The value of the record.
+* `sending_records_set` - A set of DNS records for sending validation.
     * `name` - The name of the record.
     * `record_type` - The record type.
     * `valid` - `"valid"` if the record is valid.

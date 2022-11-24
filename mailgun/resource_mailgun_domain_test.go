@@ -3,6 +3,7 @@ package mailgun
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
@@ -15,6 +16,7 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 	var resp mailgun.DomainResponse
 	uuid, _ := uuid.GenerateUUID()
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
+	re := regexp.MustCompile(`^\w+\._domainkey\.` + regexp.QuoteMeta(domain))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -36,6 +38,8 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "sending_records.0.name", domain),
+					resource.TestMatchResourceAttr(
+						"mailgun_domain.foobar", "sending_records_set.0.name", re),
 				),
 			},
 		},
