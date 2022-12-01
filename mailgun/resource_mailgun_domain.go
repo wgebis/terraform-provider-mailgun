@@ -68,8 +68,9 @@ func resourceMailgunDomain() *schema.Resource {
 			},
 
 			"receiving_records": &schema.Schema{
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:       schema.TypeList,
+				Computed:   true,
+				Deprecated: "Use `receiving_records_set` instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
@@ -127,8 +128,9 @@ func resourceMailgunDomain() *schema.Resource {
 			},
 
 			"sending_records": &schema.Schema{
-				Type:     schema.TypeList,
-				Computed: true,
+				Type:       schema.TypeList,
+				Computed:   true,
+				Deprecated: "Use `sending_records_set` instead.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"id": {
