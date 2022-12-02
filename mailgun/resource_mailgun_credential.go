@@ -158,8 +158,6 @@ func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) err
 			if c.Login == d.Id() {
 				d.Set("login", login)
 				d.Set("domain", domain)
-				d.Set("password", c.Password)
-
 				return nil
 			}
 		}

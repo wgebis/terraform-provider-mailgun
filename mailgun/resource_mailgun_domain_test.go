@@ -35,6 +35,10 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "wildcard", "true"),
 					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "force_dkim_authority", "true"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "open_tracking", "true"),
+					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "sending_records.0.name", domain),
@@ -64,7 +68,7 @@ func TestAccMailgunDomain_Import(t *testing.T) {
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"dkim_key_size"},
+				ImportStateVerifyIgnore: []string{"dkim_key_size", "force_dkim_authority"},
 			},
 		},
 	})
@@ -159,5 +163,7 @@ resource "mailgun_domain" "foobar" {
 	spam_action = "disabled"
 	region = "us"
     wildcard = true
+	force_dkim_authority = true
+	open_tracking = true
 }`
 }

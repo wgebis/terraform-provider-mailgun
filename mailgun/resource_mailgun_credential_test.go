@@ -35,8 +35,6 @@ func TestAccMailgunDomainCredential_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "region", "us"),
 				),
-				// due to Mailgun Client API limitation (unable to retrieve secrets)
-				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
@@ -65,8 +63,6 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "region", "us"),
 				),
-				// due to Mailgun Client API limitation (unable to retrieve secrets)
-				ExpectNonEmptyPlan: true,
 			},
 			{
 				Config: testAccCheckMailgunCredentialConfigUpdate(domain),
@@ -81,8 +77,6 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "region", "us"),
 				),
-				// due to Mailgun Client API limitation (unable to retrieve secrets)
-				ExpectNonEmptyPlan: true,
 			},
 		},
 	})
