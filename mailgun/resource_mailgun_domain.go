@@ -367,7 +367,7 @@ func resourceMailgunDomainDelete(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	// Give the destroy a chance to take effect
-	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+	err = resource.RetryContext(ctx, 5*time.Minute, func() *resource.RetryError {
 		_, err = client.GetDomain(ctx, d.Id())
 		if err == nil {
 			log.Printf("[INFO] Retrying until domain disappears...")
