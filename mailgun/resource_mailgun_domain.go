@@ -41,6 +41,7 @@ func resourceMailgunDomain() *schema.Resource {
 				Type:     schema.TypeString,
 				ForceNew: true,
 				Optional: true,
+				Default:  "disabled",
 			},
 
 			"smtp_login": {

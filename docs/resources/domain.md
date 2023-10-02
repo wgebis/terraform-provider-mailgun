@@ -31,7 +31,7 @@ The following arguments are supported:
 * `smtp_password` - (Optional) Password for SMTP authentication
 * `spam_action` - (Optional) `disabled` or `tag` Disable, no spam
     filtering will occur for inbound messages. Tag, messages
-    will be tagged with a spam header.
+    will be tagged with a spam header. Default value is `disabled`.
 * `wildcard` - (Optional) Boolean that determines whether
     the domain will accept email for sub-domains.
 * `dkim_key_size` - (Optional) The length of your domain’s generated DKIM key. Default value is `1024`.
