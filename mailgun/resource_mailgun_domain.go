@@ -81,6 +81,13 @@ func resourceMailgunDomain() *schema.Resource {
 				Default:  false,
 			},
 
+			"click_tracking": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Default:  false,
+			},
+
 			"receiving_records": &schema.Schema{
 				Type:       schema.TypeList,
 				Computed:   true,
@@ -266,6 +273,7 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 	var newPassword string = d.Get("smtp_password").(string)
 	var smtpLogin string = d.Get("smtp_login").(string)
 	var openTracking = d.Get("open_tracking").(bool)
+	var clickTracking = d.Get("click_tracking").(bool)
 
 	// Retrieve and update state of domain
 	_, errc = resourceMailgunDomainRetrieve(d.Id(), client, &currentData)
@@ -295,6 +303,18 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
+	if currentData.Get("click_tracking") != clickTracking {
+		var clickTrackingValue = "no"
+		if clickTracking {
+			clickTrackingValue = "yes"
+		}
+		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), clickTrackingValue)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+
 	return nil
 }
 
@@ -315,6 +335,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.ForceDKIMAuthority = d.Get("force_dkim_authority").(bool)
 	var dkimSelector = d.Get("dkim_selector").(string)
 	var openTracking = d.Get("open_tracking").(bool)
+	var clickTracking = d.Get("click_tracking").(bool)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
@@ -333,6 +354,13 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 	if openTracking {
 		errc = client.UpdateOpenTracking(ctx, d.Get("name").(string), "yes")
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+	if clickTracking {
+		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), "yes")
 
 		if errc != nil {
 			return diag.FromErr(errc)
@@ -449,6 +477,12 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *sc
 		openTracking = true
 	}
 	d.Set("open_tracking", openTracking)
+
+	var clickTracking = false
+	if info.Click.Active {
+		clickTracking = true
+	}
+	d.Set("click_tracking", clickTracking)
 
 	return &resp, nil
 }
