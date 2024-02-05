@@ -39,6 +39,7 @@ The following attributes are exported:
 * `smtp_password` - The password to the SMTP server.
 * `wildcard` - Whether or not the domain will accept email for sub-domains.
 * `spam_action` - The spam filtering setting.
+* `web_scheme` - The tracking web scheme.
 * `receiving_records` - A list of DNS records for receiving validation.
     * `priority` - The priority of the record.
     * `record_type` - The record type.
