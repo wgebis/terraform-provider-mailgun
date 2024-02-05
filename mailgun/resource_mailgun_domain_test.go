@@ -39,6 +39,8 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "open_tracking", "true"),
 					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "click_tracking", "true"),
+					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "sending_records.0.name", domain),
@@ -165,5 +167,6 @@ resource "mailgun_domain" "foobar" {
     wildcard = true
 	force_dkim_authority = true
 	open_tracking = true
+	click_tracking = true
 }`
 }
