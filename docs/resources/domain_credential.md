@@ -2,7 +2,7 @@
 page_title: "Mailgun: mailgun_domain"
 ---
 
-# mailgun\_domain_cedential
+# mailgun\_domain_credential
 
 Provides a Mailgun domain credential resource. This can be used to create and manage credential in domain of Mailgun.
 
