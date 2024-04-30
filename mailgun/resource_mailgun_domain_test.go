@@ -42,8 +42,8 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 						"mailgun_domain.foobar", "web_scheme", "https"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
-					resource.TestCheckResourceAttr(
-						"mailgun_domain.foobar", "sending_records.0.name", domain),
+					resource.TestMatchResourceAttr(
+						"mailgun_domain.foobar", "sending_records.0.name", re),
 					resource.TestMatchResourceAttr(
 						"mailgun_domain.foobar", "sending_records_set.0.name", re),
 				),
@@ -171,6 +171,6 @@ resource "mailgun_domain" "foobar" {
     wildcard = true
 	force_dkim_authority = true
 	open_tracking = true
-	web_scheme = https
+	web_scheme = "https"
 }`
 }
