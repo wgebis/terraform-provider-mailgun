@@ -38,6 +38,7 @@ The following arguments are supported:
 * `dkim_selector` - (Optional) The name of your DKIM selector if you want to specify it whereas MailGun will make it's own choice.
 * `force_dkim_authority` - (Optional) If set to true, the domain will be the DKIM authority for itself even if the root domain is registered on the same mailgun account. If set to false, the domain will have the same DKIM authority as the root domain registered on the same mailgun account. The default is `false`.
 * `open_tracking` - (Optional) (Enum: `yes` or `no`) The open tracking settings for the domain. Default: `no`
+* `click_tracking` - (Optional) (Enum: `yes` or `no`) The click tracking settings for the domain. Default: `no`
 * `web_scheme` - (Optional) (`http` or `https`) The tracking web scheme. Default: `http`
 
 ## Attributes Reference
@@ -50,6 +51,8 @@ The following attributes are exported:
 * `smtp_password` - The password to the SMTP server.
 * `wildcard` - Whether or not the domain will accept email for sub-domains.
 * `spam_action` - The spam filtering setting.
+* `open_tracking` - The open tracking setting.
+* `click_tracking` - The click tracking setting.
 * `web_scheme` - The tracking web scheme.
 * `receiving_records` - A list of DNS records for receiving validation.  **Deprecated** Use `receiving_records_set` instead.
     * `priority` - The priority of the record.
