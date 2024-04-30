@@ -88,6 +88,13 @@ func resourceMailgunDomain() *schema.Resource {
 				Default:  false,
 			},
 
+			"web_scheme": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				Default:  "http",
+			},
+
 			"receiving_records": &schema.Schema{
 				Type:       schema.TypeList,
 				Computed:   true,
@@ -264,7 +271,8 @@ func resourceMailgunDomainImport(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("name").(string))
+	var name = d.Get("name").(string)
+	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), name)
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
@@ -274,6 +282,7 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 	var smtpLogin string = d.Get("smtp_login").(string)
 	var openTracking = d.Get("open_tracking").(bool)
 	var clickTracking = d.Get("click_tracking").(bool)
+	var webScheme = d.Get("web_scheme").(string)
 
 	// Retrieve and update state of domain
 	_, errc = resourceMailgunDomainRetrieve(d.Id(), client, &currentData)
@@ -296,7 +305,7 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 		if openTracking {
 			openTrackingValue = "yes"
 		}
-		errc = client.UpdateOpenTracking(ctx, d.Get("name").(string), openTrackingValue)
+		errc = client.UpdateOpenTracking(ctx, name, openTrackingValue)
 
 		if errc != nil {
 			return diag.FromErr(errc)
@@ -309,6 +318,16 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 			clickTrackingValue = "yes"
 		}
 		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), clickTrackingValue)
+
+		if errc != nil {
+			return diag.FromErr(errc)
+		}
+	}
+
+	if currentData.Get("web_scheme") != webScheme {
+		opts := mailgun.UpdateDomainOptions{}
+		opts.WebScheme = webScheme
+		errc = client.UpdateDomain(ctx, name, &opts)
 
 		if errc != nil {
 			return diag.FromErr(errc)
@@ -333,6 +352,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.Wildcard = d.Get("wildcard").(bool)
 	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
 	opts.ForceDKIMAuthority = d.Get("force_dkim_authority").(bool)
+	opts.WebScheme = d.Get("web_scheme").(string)
 	var dkimSelector = d.Get("dkim_selector").(string)
 	var openTracking = d.Get("open_tracking").(bool)
 	var clickTracking = d.Get("click_tracking").(bool)
@@ -346,14 +366,14 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	if dkimSelector != "" {
-		errc = client.UpdateDomainDkimSelector(ctx, d.Get("name").(string), dkimSelector)
+		errc = client.UpdateDomainDkimSelector(ctx, name, dkimSelector)
 
 		if errc != nil {
 			return diag.FromErr(errc)
 		}
 	}
 	if openTracking {
-		errc = client.UpdateOpenTracking(ctx, d.Get("name").(string), "yes")
+		errc = client.UpdateOpenTracking(ctx, name, "yes")
 
 		if errc != nil {
 			return diag.FromErr(errc)
@@ -442,6 +462,7 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *sc
 	d.Set("smtp_login", resp.Domain.SMTPLogin)
 	d.Set("wildcard", resp.Domain.Wildcard)
 	d.Set("spam_action", resp.Domain.SpamAction)
+	d.Set("web_scheme", resp.Domain.WebScheme)
 
 	receivingRecords := make([]map[string]interface{}, len(resp.ReceivingDNSRecords))
 	for i, r := range resp.ReceivingDNSRecords {

@@ -43,7 +43,11 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
 					resource.TestCheckResourceAttr(
-						"mailgun_domain.foobar", "sending_records.0.name", domain),
+						"mailgun_domain.foobar", "web_scheme", "https"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
+					resource.TestMatchResourceAttr(
+						"mailgun_domain.foobar", "sending_records.0.name", re),
 					resource.TestMatchResourceAttr(
 						"mailgun_domain.foobar", "sending_records_set.0.name", re),
 				),
@@ -113,6 +117,10 @@ func testAccCheckMailgunDomainAttributes(domain string, DomainResp *mailgun.Doma
 			return fmt.Errorf("Bad wildcard: %t", DomainResp.Domain.Wildcard)
 		}
 
+		if DomainResp.Domain.WebScheme != "https" {
+			return fmt.Errorf("Bad web scheme: %s", DomainResp.Domain.WebScheme)
+		}
+
 		if DomainResp.ReceivingDNSRecords[0].Priority == "" {
 			return fmt.Errorf("Bad receiving_records: %s", DomainResp.ReceivingDNSRecords)
 		}
@@ -168,5 +176,6 @@ resource "mailgun_domain" "foobar" {
 	force_dkim_authority = true
 	open_tracking = true
 	click_tracking = true
+	web_scheme = "https"
 }`
 }

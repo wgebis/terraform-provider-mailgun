@@ -41,6 +41,7 @@ The following attributes are exported:
 * `spam_action` - The spam filtering setting.
 * `open_tracking` - The open tracking setting.
 * `click_tracking` - The click tracking setting.
+* `web_scheme` - The tracking web scheme.
 * `receiving_records` - A list of DNS records for receiving validation.
     * `priority` - The priority of the record.
     * `record_type` - The record type.
