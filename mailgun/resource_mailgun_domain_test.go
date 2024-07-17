@@ -66,11 +66,11 @@ func TestAccMailgunDomain_Import(t *testing.T) {
 		ProviderFactories: newProvider(),
 		CheckDestroy:      testAccCheckMailgunDomainDestroy,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: testAccCheckMailgunDomainConfig(domain),
 			},
 
-			resource.TestStep{
+			{
 				ResourceName:            resourceName,
 				ImportState:             true,
 				ImportStateVerify:       true,
