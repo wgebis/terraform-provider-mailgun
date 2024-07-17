@@ -38,6 +38,29 @@ func TestAccMailgunWebhook_Basic(t *testing.T) {
 	})
 }
 
+func TestAccMailgunWebhook_Import(t *testing.T) {
+	resourceName := "mailgun_webhook.foobar"
+	uuid, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraform.%s.com", uuid)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunWebhookDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckMailgunWebhookConfig(domain),
+			},
+
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckMailgunWebhookDestroy(s *terraform.State) error {
 
 	for _, rs := range s.RootModule().Resources {
