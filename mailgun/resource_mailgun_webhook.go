@@ -17,6 +17,9 @@ func resourceMailgunWebhook() *schema.Resource {
 		ReadContext:   resourceMailgunWebhookRead,
 		UpdateContext: resourceMailgunWebhookUpdate,
 		DeleteContext: resourceMailgunWebhookDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceMailgunWebhookImport,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"region": {
@@ -59,6 +62,13 @@ func resourceMailgunWebhook() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceMailgunWebhookImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+
+	setDefaultRegionForImport(d)
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func resourceMailgunWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {

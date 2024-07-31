@@ -95,7 +95,7 @@ func resourceMailgunDomain() *schema.Resource {
 				Default:  "http",
 			},
 
-			"receiving_records": &schema.Schema{
+			"receiving_records": {
 				Type:       schema.TypeList,
 				Computed:   true,
 				Deprecated: "Use `receiving_records_set` instead.",
@@ -125,7 +125,7 @@ func resourceMailgunDomain() *schema.Resource {
 				},
 			},
 
-			"receiving_records_set": &schema.Schema{
+			"receiving_records_set": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Set:      domainRecordsSchemaSetFunc,
@@ -155,7 +155,7 @@ func resourceMailgunDomain() *schema.Resource {
 				},
 			},
 
-			"sending_records": &schema.Schema{
+			"sending_records": {
 				Type:       schema.TypeList,
 				Computed:   true,
 				Deprecated: "Use `sending_records_set` instead.",
@@ -185,7 +185,7 @@ func resourceMailgunDomain() *schema.Resource {
 				},
 			},
 
-			"sending_records_set": &schema.Schema{
+			"sending_records_set": {
 				Type:     schema.TypeSet,
 				Computed: true,
 				Set:      domainRecordsSchemaSetFunc,
