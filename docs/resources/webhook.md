@@ -25,7 +25,7 @@ The following arguments are supported:
 
 * `domain` - (Required) The domain to add to Mailgun
 * `region` - (Optional) The region where domain will be created. Default value is `us`.
-* `kind` - (Required) The kind of webhook. Supported values (`clicked` `complained` `delivered` `opened` `permanent_fail`, `temporary_fail` `unsubscribed`)
+* `kind` - (Required) The kind of webhook. Supported values (`accepted` `clicked` `complained` `delivered` `opened` `permanent_fail`, `temporary_fail` `unsubscribed`)
 * `urls` - (Required) The urls of webhook
 
 ## Attributes Reference

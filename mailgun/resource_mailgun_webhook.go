@@ -41,7 +41,7 @@ func resourceMailgunWebhook() *schema.Resource {
 				Required: true,
 				ValidateFunc: func(val interface{}, key string) (warns []string, errs []error) {
 					v := val.(string)
-					allowedKinds := []string{"clicked", "complained", "delivered", "opened", "permanent_fail", "temporary_fail", "unsubscribed"}
+					allowedKinds := []string{"accepted", "clicked", "complained", "delivered", "opened", "permanent_fail", "temporary_fail", "unsubscribed"}
 					matched := false
 					for _, kind := range allowedKinds {
 						if kind == v {
@@ -65,7 +65,6 @@ func resourceMailgunWebhook() *schema.Resource {
 }
 
 func resourceMailgunWebhookImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-
 	setDefaultRegionForImport(d)
 
 	return []*schema.ResourceData{d}, nil
