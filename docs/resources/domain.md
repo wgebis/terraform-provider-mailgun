@@ -22,6 +22,44 @@ resource "mailgun_domain" "default" {
 }
 ```
 
+Here’s an example using the [Cloudflare provider](https://registry.terraform.io/providers/cloudflare/cloudflare/latest). Bear in mind that’s the Cloudflare Provider isn’t associated with this Mailgun provider, and other Terraform Providers that can control DNS may require a slightly different implementation.
+
+```hcl
+# Use receiving/sending set attributes to create DNS entries
+resource "cloudflare_record" "default_receiving" {
+  for_each = {
+    for record in mailgun_domain.default.receiving_records_set : record.id => {
+      type     = record.record_type
+      value    = record.value
+      priority = record.priority
+    }
+  }
+
+  zone_id  = var.zone_id
+  name     = var.domain
+
+  type     = each.value.type
+  value    = each.value.value
+  priority = each.value.priority
+}
+
+resource "cloudflare_record" "default_sending" {
+  for_each = {
+    for record in mailgun_domain.default.sending_records_set : record.id => {
+      name  = record.name
+      type  = record.record_type
+      value = record.value
+    }
+  }
+
+  zone_id = var.zone_id
+
+  name    = each.value.name
+  type    = each.value.type
+  value   = each.value.value
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -55,29 +93,29 @@ The following attributes are exported:
 * `click_tracking` - The click tracking setting.
 * `web_scheme` - The tracking web scheme.
 * `receiving_records` - A list of DNS records for receiving validation.  **Deprecated** Use `receiving_records_set` instead.
-    * `priority` - The priority of the record.
-    * `record_type` - The record type.
-    * `valid` - `"valid"` if the record is valid.
-    * `value` - The value of the record.
+  * `priority` - The priority of the record.
+  * `record_type` - The record type.
+  * `valid` - `"valid"` if the record is valid.
+  * `value` - The value of the record.
 * `receiving_records_set` - A set of DNS records for receiving validation.
-    * `priority` - The priority of the record.
-    * `record_type` - The record type.
-    * `valid` - `"valid"` if the record is valid.
-    * `value` - The value of the record.
+  * `priority` - The priority of the record.
+  * `record_type` - The record type.
+  * `valid` - `"valid"` if the record is valid.
+  * `value` - The value of the record.
 * `sending_records` - A list of DNS records for sending validation. **Deprecated** Use `sending_records_set` instead.
-    * `name` - The name of the record.
-    * `record_type` - The record type.
-    * `valid` - `"valid"` if the record is valid.
-    * `value` - The value of the record.
+  * `name` - The name of the record.
+  * `record_type` - The record type.
+  * `valid` - `"valid"` if the record is valid.
+  * `value` - The value of the record.
 * `sending_records_set` - A set of DNS records for sending validation.
-    * `name` - The name of the record.
-    * `record_type` - The record type.
-    * `valid` - `"valid"` if the record is valid.
-    * `value` - The value of the record.
+  * `name` - The name of the record.
+  * `record_type` - The record type.
+  * `valid` - `"valid"` if the record is valid.
+  * `value` - The value of the record.
 
 ## Import
 
-Domains can be imported using `region:domain_name` via `import` command. Region has to be chosen from `eu` or `us` (when no selection `us` is applied). 
+Domains can be imported using `region:domain_name` via `import` command. Region has to be chosen from `eu` or `us` (when no selection `us` is applied).
 
 ```hcl
 terraform import mailgun_domain.test us:example.domain.com
