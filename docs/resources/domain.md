@@ -22,7 +22,7 @@ resource "mailgun_domain" "default" {
 }
 ```
 
-Here’s an example using the [Cloudflare provider](https://registry.terraform.io/providers/cloudflare/cloudflare/latest). Bear in mind that’s the Cloudflare Provider isn’t associated with this Mailgun provider, and other Terraform Providers that can control DNS may require a slightly different implementation.
+Here’s an example using the [Cloudflare provider](https://registry.terraform.io/providers/cloudflare/cloudflare/latest). Bear in mind that the solution below requires the Cloudflare provider to be included in your project. Also, the Mailgun provider isn’t associated with Cloudflare, and other Terraform providers that can control DNS may require a slightly different implementation.
 
 ```hcl
 # Use receiving/sending set attributes to create DNS entries
