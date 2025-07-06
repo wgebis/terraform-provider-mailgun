@@ -9,11 +9,11 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 )
 
 func TestAccMailgunDomain_Basic(t *testing.T) {
-	var resp mailgun.DomainResponse
+	var resp mtypes.GetDomainResponse
 	uuid, _ := uuid.GenerateUUID()
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 	re := regexp.MustCompile(`^\w+\._domainkey\.` + regexp.QuoteMeta(domain))
@@ -92,7 +92,7 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 			return errc
 		}
 
-		resp, err := client.GetDomain(context.Background(), rs.Primary.ID)
+		resp, err := client.GetDomain(context.Background(), rs.Primary.ID, nil)
 
 		if err == nil {
 			return fmt.Errorf("Domain still exists: %#v", resp)
@@ -102,7 +102,7 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckMailgunDomainAttributes(domain string, DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
+func testAccCheckMailgunDomainAttributes(domain string, DomainResp *mtypes.GetDomainResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
 		if DomainResp.Domain.Name != domain {
@@ -122,18 +122,18 @@ func testAccCheckMailgunDomainAttributes(domain string, DomainResp *mailgun.Doma
 		}
 
 		if DomainResp.ReceivingDNSRecords[0].Priority == "" {
-			return fmt.Errorf("Bad receiving_records: %s", DomainResp.ReceivingDNSRecords)
+			return fmt.Errorf("Bad receiving_records: %#v", DomainResp.ReceivingDNSRecords[0].Priority)
 		}
 
 		if DomainResp.SendingDNSRecords[0].Name == "" {
-			return fmt.Errorf("Bad sending_records: %s", DomainResp.SendingDNSRecords)
+			return fmt.Errorf("Bad sending_records: %#v", DomainResp.SendingDNSRecords)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
+func testAccCheckMailgunDomainExists(n string, DomainResp *mtypes.GetDomainResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -150,7 +150,7 @@ func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainRespons
 			return errc
 		}
 
-		resp, err := client.GetDomain(context.Background(), rs.Primary.ID)
+		resp, err := client.GetDomain(context.Background(), rs.Primary.ID, nil)
 
 		if err != nil {
 			return err

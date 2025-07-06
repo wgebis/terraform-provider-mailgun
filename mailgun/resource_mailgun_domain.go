@@ -3,6 +3,7 @@ package mailgun
 import (
 	"context"
 	"fmt"
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 	"log"
 	"strings"
 	"time"
@@ -11,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v5"
 )
 
 func resourceMailgunDomain() *schema.Resource {
@@ -272,14 +273,14 @@ func resourceMailgunDomainImport(ctx context.Context, d *schema.ResourceData, me
 
 func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var name = d.Get("name").(string)
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), name)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
 
 	var currentData schema.ResourceData
-	var newPassword string = d.Get("smtp_password").(string)
-	var smtpLogin string = d.Get("smtp_login").(string)
+	var newPassword = d.Get("smtp_password").(string)
+	var smtpLogin = d.Get("smtp_login").(string)
 	var openTracking = d.Get("open_tracking").(bool)
 	var clickTracking = d.Get("click_tracking").(bool)
 	var webScheme = d.Get("web_scheme").(string)
@@ -293,7 +294,7 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 
 	// Update default credential if changed
 	if currentData.Get("smtp_password") != newPassword {
-		errc = client.ChangeCredentialPassword(ctx, smtpLogin, newPassword)
+		errc = client.ChangeCredentialPassword(ctx, name, smtpLogin, newPassword)
 
 		if errc != nil {
 			return diag.FromErr(errc)
@@ -347,7 +348,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 
 	name := d.Get("name").(string)
 
-	opts.SpamAction = mailgun.SpamAction(d.Get("spam_action").(string))
+	opts.SpamAction = mtypes.SpamAction(d.Get("spam_action").(string))
 	opts.Password = d.Get("smtp_password").(string)
 	opts.Wildcard = d.Get("wildcard").(bool)
 	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
@@ -417,7 +418,7 @@ func resourceMailgunDomainDelete(ctx context.Context, d *schema.ResourceData, me
 
 	// Give the destroy a chance to take effect
 	err = resource.RetryContext(ctx, 5*time.Minute, func() *resource.RetryError {
-		_, err = client.GetDomain(ctx, d.Id())
+		_, err = client.GetDomain(ctx, d.Id(), nil)
 		if err == nil {
 			log.Printf("[INFO] Retrying until domain disappears...")
 			return resource.RetryableError(
@@ -450,19 +451,19 @@ func resourceMailgunDomainRead(ctx context.Context, d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *schema.ResourceData) (*mailgun.DomainResponse, error) {
+func resourceMailgunDomainRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mtypes.GetDomainResponse, error) {
 
-	resp, err := client.GetDomain(context.Background(), id)
+	resp, err := client.GetDomain(context.Background(), id, nil)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving domain: %s", err)
 	}
 
-	d.Set("name", resp.Domain.Name)
-	d.Set("smtp_login", resp.Domain.SMTPLogin)
-	d.Set("wildcard", resp.Domain.Wildcard)
-	d.Set("spam_action", resp.Domain.SpamAction)
-	d.Set("web_scheme", resp.Domain.WebScheme)
+	_ = d.Set("name", resp.Domain.Name)
+	_ = d.Set("smtp_login", resp.Domain.SMTPLogin)
+	_ = d.Set("wildcard", resp.Domain.Wildcard)
+	_ = d.Set("spam_action", resp.Domain.SpamAction)
+	_ = d.Set("web_scheme", resp.Domain.WebScheme)
 
 	receivingRecords := make([]map[string]interface{}, len(resp.ReceivingDNSRecords))
 	for i, r := range resp.ReceivingDNSRecords {
@@ -473,8 +474,8 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *sc
 		receivingRecords[i]["value"] = r.Value
 		receivingRecords[i]["record_type"] = r.RecordType
 	}
-	d.Set("receiving_records", receivingRecords)
-	d.Set("receiving_records_set", receivingRecords)
+	_ = d.Set("receiving_records", receivingRecords)
+	_ = d.Set("receiving_records_set", receivingRecords)
 
 	sendingRecords := make([]map[string]interface{}, len(resp.SendingDNSRecords))
 	for i, r := range resp.SendingDNSRecords {
@@ -489,21 +490,21 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.MailgunImpl, d *sc
 			sendingRecords[i]["id"] = "_domainkey." + resp.Domain.Name
 		}
 	}
-	d.Set("sending_records", sendingRecords)
-	d.Set("sending_records_set", sendingRecords)
+	_ = d.Set("sending_records", sendingRecords)
+	_ = d.Set("sending_records_set", sendingRecords)
 
 	info, err := client.GetDomainTracking(context.Background(), id)
 	var openTracking = false
 	if info.Open.Active {
 		openTracking = true
 	}
-	d.Set("open_tracking", openTracking)
+	_ = d.Set("open_tracking", openTracking)
 
 	var clickTracking = false
 	if info.Click.Active {
 		clickTracking = true
 	}
-	d.Set("click_tracking", clickTracking)
+	_ = d.Set("click_tracking", clickTracking)
 
 	return &resp, nil
 }

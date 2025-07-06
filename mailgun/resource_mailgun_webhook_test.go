@@ -68,10 +68,10 @@ func testAccCheckMailgunWebhookDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).GetClientForDomain(rs.Primary.Attributes["region"], rs.Primary.Attributes["domain"])
+		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
 
 		kind := rs.Primary.Attributes["kind"]
-		webhooks, err := client.GetWebhook(context.Background(), kind)
+		webhooks, err := client.GetWebhook(context.Background(), rs.Primary.Attributes["domain"], kind)
 
 		if err == nil {
 			return fmt.Errorf("Webhook still exists: %#v", webhooks)

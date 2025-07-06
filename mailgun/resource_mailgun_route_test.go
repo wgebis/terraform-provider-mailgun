@@ -8,11 +8,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 )
 
 func TestAccMailgunRoute_Basic(t *testing.T) {
-	var route mailgun.Route
+	var route mtypes.Route
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -65,7 +65,7 @@ func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).GetClientForDomain(rs.Primary.Attributes["region"], rs.Primary.Attributes["domain"])
+		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
 
 		route, err := client.GetRoute(context.Background(), rs.Primary.ID)
 
@@ -77,7 +77,7 @@ func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckMailgunRouteExists(n string, Route *mailgun.Route) resource.TestCheckFunc {
+func testAccCheckMailgunRouteExists(n string, Route *mtypes.Route) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 

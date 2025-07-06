@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 )
 
 func resourceMailgunCredential() *schema.Resource {
@@ -64,7 +64,7 @@ func resourceMailgunCredentialImport(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
@@ -74,7 +74,7 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 
 	log.Printf("[DEBUG] Credential create configuration: email: %s", email)
 
-	err := client.CreateCredential(context.Background(), email, password)
+	err := client.CreateCredential(context.Background(), d.Get("domain").(string), email, password)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -88,7 +88,7 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 }
 
 func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) error {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return errc
 	}
@@ -98,7 +98,7 @@ func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Credential create configuration: email: %s", email)
 
-	err := client.ChangeCredentialPassword(context.Background(), email, password)
+	err := client.ChangeCredentialPassword(context.Background(), d.Get("domain").(string), email, password)
 
 	if err != nil {
 		return err
@@ -112,13 +112,13 @@ func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceMailgunCredentialDelete(d *schema.ResourceData, meta interface{}) error {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return errc
 	}
 
 	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
-	err := client.DeleteCredential(context.Background(), email)
+	err := client.DeleteCredential(context.Background(), d.Get("domain").(string), email)
 
 	if err != nil {
 		return fmt.Errorf("Error deleting credential: %s", err)
@@ -137,27 +137,27 @@ func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) err
 	login := parts[0]
 	domain := parts[1]
 
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), domain)
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return errc
 	}
 
 	log.Printf("[DEBUG] Read credential for region '%s' and email '%s'", d.Get("region"), d.Id())
 
-	itCredentials := client.ListCredentials(nil)
+	itCredentials := client.ListCredentials(domain, nil)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
-	var page []mailgun.Credential
+	var page []mtypes.Credential
 
 	for itCredentials.Next(ctx, &page) {
 		log.Printf("[DEBUG] Read credential get new page")
 
 		for _, c := range page {
 			if c.Login == d.Id() {
-				d.Set("login", login)
-				d.Set("domain", domain)
+				_ = d.Set("login", login)
+				_ = d.Set("domain", domain)
 				return nil
 			}
 		}

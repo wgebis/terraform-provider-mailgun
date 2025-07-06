@@ -10,17 +10,17 @@ func setDefaultRegionForImport(d *schema.ResourceData) {
 	parts := strings.SplitN(d.Id(), ":", 2)
 
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		d.Set("region", "us")
+		_ = d.Set("region", "us")
 	} else {
-		d.Set("region", parts[0])
+		_ = d.Set("region", parts[0])
 		d.SetId(parts[1])
 	}
 }
 
 // stringHashcode hashes a string to a unique hashcode.
 //
-// crc32 returns a uint32, but for our use we need
-// and non negative integer. Here we cast to an integer
+// crc32 returns an uint32, but for our use we need
+// and non-negative integer. Here we cast to an integer
 // and invert it if the result is negative.
 func stringHashcode(s string) int {
 	v := int(crc32.ChecksumIEEE([]byte(s)))
