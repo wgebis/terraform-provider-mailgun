@@ -5,7 +5,7 @@ go 1.24.1
 require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.37.0
-	github.com/mailgun/mailgun-go/v5 v5.4.2
+	github.com/mailgun/mailgun-go/v5 v5.5.0
 )
 
 require (
