@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/go-uuid"
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/mailgun/mailgun-go/v4"
 )
 
 func TestAccMailgunDomainCredential_Basic(t *testing.T) {
@@ -89,17 +89,17 @@ func testAccCheckMailgunCrendentialDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, err := testAccProvider.Meta().(*Config).GetClientForDomain(rs.Primary.Attributes["region"], rs.Primary.Attributes["domain"])
+		client, err := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
 
-		resp, err := client.GetDomain(context.Background(), rs.Primary.Attributes["domain"])
+		resp, err := client.GetDomain(context.Background(), rs.Primary.Attributes["domain"], nil)
 		if err == nil {
 
-			itCredentials := client.ListCredentials(nil)
+			itCredentials := client.ListCredentials(rs.Primary.Attributes["domain"], nil)
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 			defer cancel()
 
-			var page []mailgun.Credential
+			var page []mtypes.Credential
 
 			for itCredentials.Next(ctx, &page) {
 
@@ -133,14 +133,14 @@ func testAccCheckMailgunCredentialExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No domain credential ID is set")
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).GetClientForDomain(rs.Primary.Attributes["region"], rs.Primary.Attributes["domain"])
+		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
 
-		itCredentials := client.ListCredentials(nil)
+		itCredentials := client.ListCredentials(rs.Primary.Attributes["domain"], nil)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 		defer cancel()
 
-		var page []mailgun.Credential
+		var page []mtypes.Credential
 
 		for itCredentials.Next(ctx, &page) {
 			for _, c := range page {

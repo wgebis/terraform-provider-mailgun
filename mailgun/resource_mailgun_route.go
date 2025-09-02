@@ -3,13 +3,14 @@ package mailgun
 import (
 	"context"
 	"fmt"
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 	"log"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/mailgun/mailgun-go/v4"
+	"github.com/mailgun/mailgun-go/v5"
 )
 
 func resourceMailgunRoute() *schema.Resource {
@@ -70,7 +71,7 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 		return diag.FromErr(errc)
 	}
 
-	opts := mailgun.Route{}
+	opts := mtypes.Route{}
 
 	opts.Priority = d.Get("priority").(int)
 	opts.Description = d.Get("description").(string)
@@ -110,7 +111,7 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 		return errc
 	}
 
-	opts := mailgun.Route{}
+	opts := mtypes.Route{}
 
 	opts.Priority = d.Get("priority").(int)
 	opts.Description = d.Get("description").(string)
@@ -188,7 +189,7 @@ func resourceMailgunRouteRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceMailgunRouteRetrieve(id string, client *mailgun.MailgunImpl, d *schema.ResourceData) (*mailgun.Route, error) {
+func resourceMailgunRouteRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mtypes.Route, error) {
 
 	route, err := client.GetRoute(context.Background(), id)
 
@@ -196,10 +197,10 @@ func resourceMailgunRouteRetrieve(id string, client *mailgun.MailgunImpl, d *sch
 		return nil, fmt.Errorf("Error retrieving route: %s", err)
 	}
 
-	d.Set("priority", route.Priority)
-	d.Set("description", route.Description)
-	d.Set("expression", route.Expression)
-	d.Set("actions", route.Actions)
+	_ = d.Set("priority", route.Priority)
+	_ = d.Set("description", route.Description)
+	_ = d.Set("expression", route.Expression)
+	_ = d.Set("actions", route.Actions)
 
 	return &route, nil
 }

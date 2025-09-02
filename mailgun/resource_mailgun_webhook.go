@@ -71,7 +71,7 @@ func resourceMailgunWebhookImport(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceMailgunWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
@@ -84,7 +84,7 @@ func resourceMailgunWebhookCreate(ctx context.Context, d *schema.ResourceData, m
 		stringUrls = append(stringUrls, url.(string))
 	}
 
-	err := client.CreateWebhook(ctx, kind, stringUrls)
+	err := client.CreateWebhook(ctx, d.Get("domain").(string), kind, stringUrls)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -98,7 +98,7 @@ func resourceMailgunWebhookCreate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceMailgunWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
@@ -111,7 +111,7 @@ func resourceMailgunWebhookUpdate(ctx context.Context, d *schema.ResourceData, m
 		stringUrls = append(stringUrls, url.(string))
 	}
 
-	err := client.UpdateWebhook(ctx, kind, stringUrls)
+	err := client.UpdateWebhook(ctx, d.Get("domain").(string), kind, stringUrls)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -122,14 +122,14 @@ func resourceMailgunWebhookUpdate(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceMailgunWebhookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
 
 	kind := d.Get("kind").(string)
 
-	err := client.DeleteWebhook(ctx, kind)
+	err := client.DeleteWebhook(ctx, d.Get("domain").(string), kind)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -140,19 +140,19 @@ func resourceMailgunWebhookDelete(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceMailgunWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClientForDomain(d.Get("region").(string), d.Get("domain").(string))
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
 
 	kind := d.Get("kind").(string)
-	urls, err := client.GetWebhook(ctx, kind)
+	urls, err := client.GetWebhook(ctx, d.Get("domain").(string), kind)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	d.Set("kind", kind)
-	d.Set("urls", urls)
+	_ = d.Set("kind", kind)
+	_ = d.Set("urls", urls)
 
 	return nil
 }
