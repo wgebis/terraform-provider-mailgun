@@ -107,8 +107,6 @@ func resourceMailgunApiKeyCreate(ctx context.Context, d *schema.ResourceData, me
 		return diag.FromErr(err)
 	}
 
-	log.Printf("[DEBUG] API key: %v", apiKey)
-
 	d.SetId(apiKey.ID)
 	d.Set("requestor", apiKey.Requestor)
 	d.Set("secret", apiKey.Secret)
