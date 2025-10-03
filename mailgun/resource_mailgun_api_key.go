@@ -222,6 +222,8 @@ func (r *apiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	plan.ID = types.StringValue(apiKey.ID)
+	plan.DisabledReason = types.StringValue(apiKey.DisabledReason)
+	plan.IsDisabled = types.BoolValue(apiKey.IsDisabled)
 	plan.Requestor = types.StringValue(apiKey.Requestor)
 	plan.Secret = types.StringValue(apiKey.Secret)
 
@@ -261,6 +263,8 @@ func (r *apiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 	var found bool
 	for _, key := range apiKeyList {
 		if key.ID == state.ID.ValueString() {
+			state.DisabledReason = types.StringValue(key.DisabledReason)
+			state.IsDisabled = types.BoolValue(key.IsDisabled)
 			state.Requestor = types.StringValue(key.Requestor)
 			state.Secret = types.StringValue(key.Secret)
 			found = true
