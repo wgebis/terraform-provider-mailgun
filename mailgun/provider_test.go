@@ -4,28 +4,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
 
-var testAccProvider *schema.Provider
-
-func newProvider() map[string]func() (*schema.Provider, error) {
-	testAccProvider = Provider()
-	return map[string]func() (*schema.Provider, error){
-		"mailgun": func() (*schema.Provider, error) {
-			return testAccProvider, nil
-		},
-	}
-}
-
-func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
-func TestProvider_impl(t *testing.T) {
-	var _ *schema.Provider = Provider()
+// testAccProtoV6ProviderFactories are used to instantiate a provider during
+// acceptance testing. The factory function will be invoked for every Terraform
+// CLI command executed to create a provider server to which the CLI can
+// reattach.
+var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+	"mailgun": providerserver.NewProtocol6WithError(New()),
 }
 
 func testAccPreCheck(t *testing.T) {

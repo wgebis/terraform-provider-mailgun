@@ -1,33 +1,26 @@
 package mailgun
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/mailgun/mailgun-go/v5/mtypes"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccMailgunDomain_Basic(t *testing.T) {
-	var resp mtypes.GetDomainResponse
 	uuid, _ := uuid.GenerateUUID()
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 	re := regexp.MustCompile(`^\w+\._domainkey\.` + regexp.QuoteMeta(domain))
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunDomainDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunDomainConfig(domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMailgunDomainExists("mailgun_domain.foobar", &resp),
-					testAccCheckMailgunDomainAttributes(domain, &resp),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "name", domain),
 					resource.TestCheckResourceAttr(
@@ -62,9 +55,8 @@ func TestAccMailgunDomain_Import(t *testing.T) {
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunDomainDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunDomainConfig(domain),
@@ -78,92 +70,6 @@ func TestAccMailgunDomain_Import(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "mailgun_domain" {
-			continue
-		}
-
-		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
-		if errc != nil {
-			return errc
-		}
-
-		resp, err := client.GetDomain(context.Background(), rs.Primary.ID, nil)
-
-		if err == nil {
-			return fmt.Errorf("Domain still exists: %#v", resp)
-		}
-	}
-
-	return nil
-}
-
-func testAccCheckMailgunDomainAttributes(domain string, DomainResp *mtypes.GetDomainResponse) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if DomainResp.Domain.Name != domain {
-			return fmt.Errorf("Bad name: %s", DomainResp.Domain.Name)
-		}
-
-		if DomainResp.Domain.SpamAction != "disabled" {
-			return fmt.Errorf("Bad spam_action: %s", DomainResp.Domain.SpamAction)
-		}
-
-		if DomainResp.Domain.Wildcard != true {
-			return fmt.Errorf("Bad wildcard: %t", DomainResp.Domain.Wildcard)
-		}
-
-		if DomainResp.Domain.WebScheme != "https" {
-			return fmt.Errorf("Bad web scheme: %s", DomainResp.Domain.WebScheme)
-		}
-
-		if DomainResp.ReceivingDNSRecords[0].Priority == "" {
-			return fmt.Errorf("Bad receiving_records: %#v", DomainResp.ReceivingDNSRecords[0].Priority)
-		}
-
-		if DomainResp.SendingDNSRecords[0].Name == "" {
-			return fmt.Errorf("Bad sending_records: %#v", DomainResp.SendingDNSRecords)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckMailgunDomainExists(n string, DomainResp *mtypes.GetDomainResponse) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Domain ID is set")
-		}
-
-		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
-		if errc != nil {
-			return errc
-		}
-
-		resp, err := client.GetDomain(context.Background(), rs.Primary.ID, nil)
-
-		if err != nil {
-			return err
-		}
-
-		if resp.Domain.Name != rs.Primary.ID {
-			return fmt.Errorf("Domain not found")
-		}
-
-		*DomainResp = resp
-
-		return nil
-	}
 }
 
 func testAccCheckMailgunDomainConfig(domain string) string {

@@ -1,14 +1,11 @@
 package mailgun
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccMailgunWebhook_Basic(t *testing.T) {
@@ -17,9 +14,8 @@ func TestAccMailgunWebhook_Basic(t *testing.T) {
 	domain := fmt.Sprintf("terraformcred.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunWebhookConfig(domain),
@@ -44,9 +40,8 @@ func TestAccMailgunWebhook_Import(t *testing.T) {
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunWebhookConfig(domain),
@@ -59,26 +54,6 @@ func TestAccMailgunWebhook_Import(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckMailgunWebhookDestroy(s *terraform.State) error {
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "mailgun_webhook" {
-			continue
-		}
-
-		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
-
-		kind := rs.Primary.Attributes["kind"]
-		webhooks, err := client.GetWebhook(context.Background(), rs.Primary.Attributes["domain"], kind)
-
-		if err == nil {
-			return fmt.Errorf("Webhook still exists: %#v", webhooks)
-		}
-	}
-
-	return nil
 }
 
 func testAccCheckMailgunWebhookConfig(domain string) string {

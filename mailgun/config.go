@@ -1,13 +1,14 @@
 package mailgun
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/mailgun/mailgun-go/v5"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/mailgun/mailgun-go/v5"
 )
 
-// Config struct holds API key
+// Config struct holds the API key
 type Config struct {
 	APIKey        string
 	Region        string
@@ -22,7 +23,7 @@ func (c *Config) Client() (*Config, diag.Diagnostics) {
 	return c, nil
 }
 
-// GetClient returns a client based on region.
+// GetClient returns a client based on a region.
 func (c *Config) GetClient(Region string) (*mailgun.Client, error) {
 
 	c.MailgunClient = mailgun.NewMailgun(c.APIKey)

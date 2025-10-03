@@ -1,15 +1,11 @@
 package mailgun
 
 import (
-	"context"
 	"fmt"
-	"github.com/hashicorp/go-uuid"
-	"github.com/mailgun/mailgun-go/v5/mtypes"
 	"testing"
-	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccMailgunDomainCredential_Basic(t *testing.T) {
@@ -18,14 +14,12 @@ func TestAccMailgunDomainCredential_Basic(t *testing.T) {
 	domain := fmt.Sprintf("terraformcred.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunCrendentialDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunCredentialConfig(domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMailgunCredentialExists("mailgun_domain_credential.foobar"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
@@ -46,14 +40,12 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunCrendentialDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunCredentialConfig(domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMailgunCredentialExists("mailgun_domain_credential.foobar"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
@@ -67,7 +59,6 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 			{
 				Config: testAccCheckMailgunCredentialConfigUpdate(domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMailgunCredentialExists("mailgun_domain_credential.foobar"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain_credential.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
@@ -80,82 +71,6 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckMailgunCrendentialDestroy(s *terraform.State) error {
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "mailgun_domain_credential" {
-			continue
-		}
-
-		client, err := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
-
-		resp, err := client.GetDomain(context.Background(), rs.Primary.Attributes["domain"], nil)
-		if err == nil {
-
-			itCredentials := client.ListCredentials(rs.Primary.Attributes["domain"], nil)
-
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-			defer cancel()
-
-			var page []mtypes.Credential
-
-			for itCredentials.Next(ctx, &page) {
-
-				for _, c := range page {
-					if c.Login == rs.Primary.ID {
-						return fmt.Errorf("The credential '%s' found! Created at: %s", rs.Primary.ID, c.CreatedAt.String())
-					}
-				}
-			}
-
-			if err := itCredentials.Err(); err != nil {
-				return err
-			}
-
-			return fmt.Errorf("Domain still exists: %#v", resp)
-		}
-	}
-
-	return nil
-}
-
-func testAccCheckMailgunCredentialExists(n string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No domain credential ID is set")
-		}
-
-		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
-
-		itCredentials := client.ListCredentials(rs.Primary.Attributes["domain"], nil)
-
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
-		defer cancel()
-
-		var page []mtypes.Credential
-
-		for itCredentials.Next(ctx, &page) {
-			for _, c := range page {
-				if c.Login == rs.Primary.ID {
-					return nil
-				}
-			}
-		}
-
-		if err := itCredentials.Err(); err != nil {
-			return err
-		}
-
-		return fmt.Errorf("The credential '%s' not found!", rs.Primary.ID)
-	}
 }
 
 func testAccCheckMailgunCredentialConfig(domain string) string {

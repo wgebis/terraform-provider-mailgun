@@ -3,508 +3,650 @@ package mailgun
 import (
 	"context"
 	"fmt"
-	"github.com/mailgun/mailgun-go/v5/mtypes"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/mailgun/mailgun-go/v5"
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 )
 
-func resourceMailgunDomain() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceMailgunDomainCreate,
-		ReadContext:   resourceMailgunDomainRead,
-		UpdateContext: resourceMailgunDomainUpdate,
-		DeleteContext: resourceMailgunDomainDelete,
-		Importer: &schema.ResourceImporter{
-			StateContext: resourceMailgunDomainImport,
+// Ensure the implementation satisfies the expected interfaces.
+var (
+	_ resource.Resource                = &domainResource{}
+	_ resource.ResourceWithConfigure   = &domainResource{}
+	_ resource.ResourceWithImportState = &domainResource{}
+)
+
+// NewDomainResource is a helper function to simplify the provider implementation.
+func NewDomainResource() resource.Resource {
+	return &domainResource{}
+}
+
+// domainResource is the resource implementation.
+type domainResource struct {
+	client *Config
+}
+
+// domainRecordModel maps domain record data.
+type domainRecordModel struct {
+	ID         types.String `tfsdk:"id"`
+	Priority   types.String `tfsdk:"priority"`
+	RecordType types.String `tfsdk:"record_type"`
+	Valid      types.String `tfsdk:"valid"`
+	Value      types.String `tfsdk:"value"`
+	Name       types.String `tfsdk:"name"`
+}
+
+// domainResourceModel maps the resource schema data.
+type domainResourceModel struct {
+	ID                  types.String        `tfsdk:"id"`
+	Name                types.String        `tfsdk:"name"`
+	Region              types.String        `tfsdk:"region"`
+	SpamAction          types.String        `tfsdk:"spam_action"`
+	SmtpLogin           types.String        `tfsdk:"smtp_login"`
+	SmtpPassword        types.String        `tfsdk:"smtp_password"`
+	Wildcard            types.Bool          `tfsdk:"wildcard"`
+	DkimSelector        types.String        `tfsdk:"dkim_selector"`
+	ForceDkimAuthority  types.Bool          `tfsdk:"force_dkim_authority"`
+	OpenTracking        types.Bool          `tfsdk:"open_tracking"`
+	ClickTracking       types.Bool          `tfsdk:"click_tracking"`
+	WebScheme           types.String        `tfsdk:"web_scheme"`
+	ReceivingRecords    []domainRecordModel `tfsdk:"receiving_records"`
+	ReceivingRecordsSet []domainRecordModel `tfsdk:"receiving_records_set"`
+	SendingRecords      []domainRecordModel `tfsdk:"sending_records"`
+	SendingRecordsSet   []domainRecordModel `tfsdk:"sending_records_set"`
+	DkimKeySize         types.Int64         `tfsdk:"dkim_key_size"`
+}
+
+// Metadata returns the resource type name.
+func (r *domainResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_domain"
+}
+
+// Schema defines the schema for the resource.
+func (r *domainResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Mailgun domain resource. This can be used to create and manage domains on Mailgun.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:    true,
+				Description: "The ID of the domain (same as name).",
+			},
+			"name": schema.StringAttribute{
+				Required:    true,
+				Description: "The domain to add to Mailgun.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"region": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("us"),
+				Description: "The region where domain will be created. Valid values are 'us' or 'eu'. Default is 'us'.",
+				Validators: []validator.String{
+					stringvalidator.OneOf("us", "eu"),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"spam_action": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("disabled"),
+				Description: "The spam action to be used. Valid values are 'disabled', 'block', or 'tag'.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"smtp_login": schema.StringAttribute{
+				Computed:    true,
+				Description: "The SMTP login for the domain.",
+			},
+			"smtp_password": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "The password for SMTP login.",
+			},
+			"wildcard": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Whether the domain is a wildcard domain.",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"dkim_selector": schema.StringAttribute{
+				Optional:    true,
+				Description: "The DKIM selector for the domain.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"force_dkim_authority": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Whether to force DKIM authority.",
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
+			"open_tracking": schema.BoolAttribute{
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+				Description: "Whether to enable open tracking.",
+			},
+			"click_tracking": schema.BoolAttribute{
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+				Description: "Whether to enable click tracking.",
+			},
+			"web_scheme": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("http"),
+				Description: "The web scheme for the domain. Valid values are 'http' or 'https'.",
+			},
+			"dkim_key_size": schema.Int64Attribute{
+				Optional:    true,
+				Description: "The size of the DKIM key.",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+			},
+			"receiving_records": schema.ListNestedAttribute{
+				Computed:           true,
+				DeprecationMessage: "Use `receiving_records_set` instead.",
+				Description:        "The receiving DNS records for the domain.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Computed:    true,
+							Description: "The ID of the record.",
+						},
+						"priority": schema.StringAttribute{
+							Computed:    true,
+							Description: "The priority of the record.",
+						},
+						"record_type": schema.StringAttribute{
+							Computed:    true,
+							Description: "The type of the record.",
+						},
+						"valid": schema.StringAttribute{
+							Computed:    true,
+							Description: "Whether the record is valid.",
+						},
+						"value": schema.StringAttribute{
+							Computed:    true,
+							Description: "The value of the record.",
+						},
+					},
+				},
+			},
+			"receiving_records_set": schema.ListNestedAttribute{
+				Computed:    true,
+				Description: "The receiving DNS records for the domain as a set.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Computed:    true,
+							Description: "The ID of the record.",
+						},
+						"priority": schema.StringAttribute{
+							Computed:    true,
+							Description: "The priority of the record.",
+						},
+						"record_type": schema.StringAttribute{
+							Computed:    true,
+							Description: "The type of the record.",
+						},
+						"valid": schema.StringAttribute{
+							Computed:    true,
+							Description: "Whether the record is valid.",
+						},
+						"value": schema.StringAttribute{
+							Computed:    true,
+							Description: "The value of the record.",
+						},
+					},
+				},
+			},
+			"sending_records": schema.ListNestedAttribute{
+				Computed:           true,
+				DeprecationMessage: "Use `sending_records_set` instead.",
+				Description:        "The sending DNS records for the domain.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Computed:    true,
+							Description: "The ID of the record.",
+						},
+						"name": schema.StringAttribute{
+							Computed:    true,
+							Description: "The name of the record.",
+						},
+						"record_type": schema.StringAttribute{
+							Computed:    true,
+							Description: "The type of the record.",
+						},
+						"valid": schema.StringAttribute{
+							Computed:    true,
+							Description: "Whether the record is valid.",
+						},
+						"value": schema.StringAttribute{
+							Computed:    true,
+							Description: "The value of the record.",
+						},
+					},
+				},
+			},
+			"sending_records_set": schema.ListNestedAttribute{
+				Computed:    true,
+				Description: "The sending DNS records for the domain as a set.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Computed:    true,
+							Description: "The ID of the record.",
+						},
+						"name": schema.StringAttribute{
+							Computed:    true,
+							Description: "The name of the record.",
+						},
+						"record_type": schema.StringAttribute{
+							Computed:    true,
+							Description: "The type of the record.",
+						},
+						"valid": schema.StringAttribute{
+							Computed:    true,
+							Description: "Whether the record is valid.",
+						},
+						"value": schema.StringAttribute{
+							Computed:    true,
+							Description: "The value of the record.",
+						},
+					},
+				},
+			},
 		},
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-			},
-
-			"region": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-				Default:  "us",
-			},
-
-			"spam_action": {
-				Type:     schema.TypeString,
-				ForceNew: true,
-				Optional: true,
-				Default:  "disabled",
-			},
-
-			"smtp_login": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			"smtp_password": {
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  false,
-				Sensitive: true,
-			},
-
-			"wildcard": {
-				Type:     schema.TypeBool,
-				ForceNew: true,
-				Optional: true,
-			},
-
-			"dkim_selector": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"force_dkim_authority": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"open_tracking": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: false,
-				Default:  false,
-			},
-
-			"click_tracking": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: false,
-				Default:  false,
-			},
-
-			"web_scheme": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: false,
-				Default:  "http",
-			},
-
-			"receiving_records": {
-				Type:       schema.TypeList,
-				Computed:   true,
-				Deprecated: "Use `receiving_records_set` instead.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"priority": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"record_type": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"valid": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
-
-			"receiving_records_set": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Set:      domainRecordsSchemaSetFunc,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"priority": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"record_type": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"valid": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
-
-			"sending_records": {
-				Type:       schema.TypeList,
-				Computed:   true,
-				Deprecated: "Use `sending_records_set` instead.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"record_type": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"valid": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
-
-			"sending_records_set": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Set:      domainRecordsSchemaSetFunc,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"record_type": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"valid": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"value": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
-			"dkim_key_size": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				ForceNew: true,
-			},
-		},
-		CustomizeDiff: customdiff.Sequence(
-			func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
-				if diff.HasChange("name") {
-					var sendingRecords []interface{}
-
-					sendingRecords = append(sendingRecords, map[string]interface{}{"id": diff.Get("name").(string)})
-					sendingRecords = append(sendingRecords, map[string]interface{}{"id": "_domainkey." + diff.Get("name").(string)})
-					sendingRecords = append(sendingRecords, map[string]interface{}{"id": "email." + diff.Get("name").(string)})
-
-					if err := diff.SetNew("sending_records_set", schema.NewSet(domainRecordsSchemaSetFunc, sendingRecords)); err != nil {
-						return fmt.Errorf("error setting new sending_records_set diff: %w", err)
-					}
-
-					var receivingRecords []interface{}
-
-					receivingRecords = append(receivingRecords, map[string]interface{}{"id": "mxa.mailgun.org"})
-					receivingRecords = append(receivingRecords, map[string]interface{}{"id": "mxb.mailgun.org"})
-
-					if err := diff.SetNew("receiving_records_set", schema.NewSet(domainRecordsSchemaSetFunc, receivingRecords)); err != nil {
-						return fmt.Errorf("error setting new receiving_records_set diff: %w", err)
-					}
-				}
-
-				return nil
-			},
-		),
 	}
 }
 
-func domainRecordsSchemaSetFunc(v interface{}) int {
-	m, ok := v.(map[string]interface{})
+// Configure adds the provider configured client to the resource.
+func (r *domainResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
 
+	client, ok := req.ProviderData.(*Config)
 	if !ok {
-		return 0
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *Config, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
 	}
 
-	if v, ok := m["id"].(string); ok {
-		return stringHashcode(v)
-	}
-
-	return 0
+	r.client = client
 }
 
-func resourceMailgunDomainImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-
-	setDefaultRegionForImport(d)
-
-	return []*schema.ResourceData{d}, nil
-}
-
-func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var name = d.Get("name").(string)
-	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
-	if errc != nil {
-		return diag.FromErr(errc)
+// Create creates the resource and sets the initial Terraform state.
+func (r *domainResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan domainResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	var currentData schema.ResourceData
-	var newPassword = d.Get("smtp_password").(string)
-	var smtpLogin = d.Get("smtp_login").(string)
-	var openTracking = d.Get("open_tracking").(bool)
-	var clickTracking = d.Get("click_tracking").(bool)
-	var webScheme = d.Get("web_scheme").(string)
-
-	// Retrieve and update state of domain
-	_, errc = resourceMailgunDomainRetrieve(d.Id(), client, &currentData)
-
-	if errc != nil {
-		return diag.FromErr(errc)
-	}
-
-	// Update default credential if changed
-	if currentData.Get("smtp_password") != newPassword {
-		errc = client.ChangeCredentialPassword(ctx, name, smtpLogin, newPassword)
-
-		if errc != nil {
-			return diag.FromErr(errc)
-		}
-	}
-
-	if currentData.Get("open_tracking") != openTracking {
-		var openTrackingValue = "no"
-		if openTracking {
-			openTrackingValue = "yes"
-		}
-		errc = client.UpdateOpenTracking(ctx, name, openTrackingValue)
-
-		if errc != nil {
-			return diag.FromErr(errc)
-		}
-	}
-
-	if currentData.Get("click_tracking") != clickTracking {
-		var clickTrackingValue = "no"
-		if clickTracking {
-			clickTrackingValue = "yes"
-		}
-		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), clickTrackingValue)
-
-		if errc != nil {
-			return diag.FromErr(errc)
-		}
-	}
-
-	if currentData.Get("web_scheme") != webScheme {
-		opts := mailgun.UpdateDomainOptions{}
-		opts.WebScheme = webScheme
-		errc = client.UpdateDomain(ctx, name, &opts)
-
-		if errc != nil {
-			return diag.FromErr(errc)
-		}
-	}
-
-	return nil
-}
-
-func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
-	if errc != nil {
-		return diag.FromErr(errc)
+	client, err := r.client.GetClient(plan.Region.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating Mailgun client",
+			"Could not create Mailgun client: "+err.Error(),
+		)
+		return
 	}
 
 	opts := mailgun.CreateDomainOptions{}
-
-	name := d.Get("name").(string)
-
-	opts.SpamAction = mtypes.SpamAction(d.Get("spam_action").(string))
-	opts.Password = d.Get("smtp_password").(string)
-	opts.Wildcard = d.Get("wildcard").(bool)
-	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
-	opts.ForceDKIMAuthority = d.Get("force_dkim_authority").(bool)
-	opts.WebScheme = d.Get("web_scheme").(string)
-	var dkimSelector = d.Get("dkim_selector").(string)
-	var openTracking = d.Get("open_tracking").(bool)
-	var clickTracking = d.Get("click_tracking").(bool)
+	opts.SpamAction = mtypes.SpamAction(plan.SpamAction.ValueString())
+	if !plan.SmtpPassword.IsNull() {
+		opts.Password = plan.SmtpPassword.ValueString()
+	}
+	if !plan.Wildcard.IsNull() {
+		opts.Wildcard = plan.Wildcard.ValueBool()
+	}
+	if !plan.DkimKeySize.IsNull() {
+		opts.DKIMKeySize = int(plan.DkimKeySize.ValueInt64())
+	}
+	if !plan.ForceDkimAuthority.IsNull() {
+		opts.ForceDKIMAuthority = plan.ForceDkimAuthority.ValueBool()
+	}
+	opts.WebScheme = plan.WebScheme.ValueString()
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
-	_, err := client.CreateDomain(context.Background(), name, &opts)
-
+	_, err = client.CreateDomain(ctx, plan.Name.ValueString(), &opts)
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Error creating domain",
+			"Could not create domain: "+err.Error(),
+		)
+		return
 	}
 
-	if dkimSelector != "" {
-		errc = client.UpdateDomainDkimSelector(ctx, name, dkimSelector)
-
-		if errc != nil {
-			return diag.FromErr(errc)
-		}
-	}
-	if openTracking {
-		errc = client.UpdateOpenTracking(ctx, name, "yes")
-
-		if errc != nil {
-			return diag.FromErr(errc)
-		}
-	}
-	if clickTracking {
-		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), "yes")
-
-		if errc != nil {
-			return diag.FromErr(errc)
+	if !plan.DkimSelector.IsNull() && plan.DkimSelector.ValueString() != "" {
+		err = client.UpdateDomainDkimSelector(ctx, plan.Name.ValueString(), plan.DkimSelector.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating DKIM selector",
+				"Could not update DKIM selector: "+err.Error(),
+			)
+			return
 		}
 	}
 
-	d.SetId(name)
+	if plan.OpenTracking.ValueBool() {
+		err = client.UpdateOpenTracking(ctx, plan.Name.ValueString(), "yes")
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating open tracking",
+				"Could not update open tracking: "+err.Error(),
+			)
+			return
+		}
+	}
 
-	log.Printf("[INFO] Domain ID: %s", d.Id())
+	if plan.ClickTracking.ValueBool() {
+		err = client.UpdateClickTracking(ctx, plan.Name.ValueString(), "yes")
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating click tracking",
+				"Could not update click tracking: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	plan.ID = plan.Name
+	log.Printf("[INFO] Domain ID: %s", plan.ID.ValueString())
 
 	// Retrieve and update state of domain
-	_, err = resourceMailgunDomainRetrieve(d.Id(), client, d)
-
+	err = r.readDomain(ctx, plan.ID.ValueString(), client, &plan)
 	if err != nil {
-		return diag.FromErr(errc)
+		resp.Diagnostics.AddError(
+			"Error reading domain",
+			"Could not read domain after creation: "+err.Error(),
+		)
+		return
 	}
 
-	return nil
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
-func resourceMailgunDomainDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
-	if errc != nil {
-		return diag.FromErr(errc)
+// Read refreshes the Terraform state with the latest data.
+func (r *domainResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state domainResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	log.Printf("[INFO] Deleting Domain: %s", d.Id())
-
-	// Destroy the domain
-	err := client.DeleteDomain(context.Background(), d.Id())
+	client, err := r.client.GetClient(state.Region.ValueString())
 	if err != nil {
-		return diag.Errorf("Error deleting domain: %s", err)
+		resp.Diagnostics.AddError(
+			"Error creating Mailgun client",
+			"Could not create Mailgun client: "+err.Error(),
+		)
+		return
 	}
 
-	// Give the destroy a chance to take effect
-	err = resource.RetryContext(ctx, 5*time.Minute, func() *resource.RetryError {
-		_, err = client.GetDomain(ctx, d.Id(), nil)
-		if err == nil {
-			log.Printf("[INFO] Retrying until domain disappears...")
-			return resource.RetryableError(
-				fmt.Errorf("domain seems to still exist; will check again"))
+	err = r.readDomain(ctx, state.ID.ValueString(), client, &state)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading domain",
+			"Could not read domain: "+err.Error(),
+		)
+		return
+	}
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+}
+
+// Update updates the resource and sets the updated Terraform state on success.
+func (r *domainResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan domainResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var state domainResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	client, err := r.client.GetClient(plan.Region.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating Mailgun client",
+			"Could not create Mailgun client: "+err.Error(),
+		)
+		return
+	}
+
+	name := plan.Name.ValueString()
+
+	// Update SMTP password if changed
+	if !plan.SmtpPassword.Equal(state.SmtpPassword) && !plan.SmtpPassword.IsNull() {
+		err = client.ChangeCredentialPassword(ctx, name, plan.SmtpLogin.ValueString(), plan.SmtpPassword.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating SMTP password",
+				"Could not update SMTP password: "+err.Error(),
+			)
+			return
 		}
-		log.Printf("[INFO] Got error looking for domain, seems gone: %s", err)
-		return nil
-	})
-
-	if err != nil {
-		return diag.FromErr(err)
 	}
 
-	return nil
+	// Update open tracking if changed
+	if !plan.OpenTracking.Equal(state.OpenTracking) {
+		value := "no"
+		if plan.OpenTracking.ValueBool() {
+			value = "yes"
+		}
+		err = client.UpdateOpenTracking(ctx, name, value)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating open tracking",
+				"Could not update open tracking: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	// Update click tracking if changed
+	if !plan.ClickTracking.Equal(state.ClickTracking) {
+		value := "no"
+		if plan.ClickTracking.ValueBool() {
+			value = "yes"
+		}
+		err = client.UpdateClickTracking(ctx, name, value)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating click tracking",
+				"Could not update click tracking: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	// Update web scheme if changed
+	if !plan.WebScheme.Equal(state.WebScheme) {
+		opts := mailgun.UpdateDomainOptions{
+			WebScheme: plan.WebScheme.ValueString(),
+		}
+		err = client.UpdateDomain(ctx, name, &opts)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating web scheme",
+				"Could not update web scheme: "+err.Error(),
+			)
+			return
+		}
+	}
+
+	// Read the updated domain
+	err = r.readDomain(ctx, plan.ID.ValueString(), client, &plan)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading domain",
+			"Could not read domain after update: "+err.Error(),
+		)
+		return
+	}
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
-func resourceMailgunDomainRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-
-	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
-	if errc != nil {
-		return diag.FromErr(errc)
+// Delete deletes the resource and removes the Terraform state on success.
+func (r *domainResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state domainResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	_, err := resourceMailgunDomainRetrieve(d.Id(), client, d)
-
+	client, err := r.client.GetClient(state.Region.ValueString())
 	if err != nil {
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Error creating Mailgun client",
+			"Could not create Mailgun client: "+err.Error(),
+		)
+		return
 	}
 
-	return nil
+	log.Printf("[INFO] Deleting Domain: %s", state.ID.ValueString())
+
+	err = client.DeleteDomain(ctx, state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error deleting domain",
+			"Could not delete domain: "+err.Error(),
+		)
+		return
+	}
+
+	// Wait for domain to be deleted
+	deadline := time.Now().Add(5 * time.Minute)
+	for time.Now().Before(deadline) {
+		_, err = client.GetDomain(ctx, state.ID.ValueString(), nil)
+		if err != nil {
+			// Domain is gone
+			log.Printf("[INFO] Domain deleted successfully: %s", state.ID.ValueString())
+			return
+		}
+		log.Printf("[INFO] Waiting for domain to be deleted...")
+		time.Sleep(5 * time.Second)
+	}
+
+	resp.Diagnostics.AddWarning(
+		"Domain deletion timeout",
+		"Domain may still exist after timeout",
+	)
 }
 
-func resourceMailgunDomainRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mtypes.GetDomainResponse, error) {
+// ImportState imports the resource into Terraform state.
+func (r *domainResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	parts := strings.SplitN(req.ID, ":", 2)
 
-	resp, err := client.GetDomain(context.Background(), id, nil)
+	var region, domainName string
+	if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+		region = parts[0]
+		domainName = parts[1]
+	} else {
+		region = "us"
+		domainName = req.ID
+	}
 
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("region"), region)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), domainName)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), domainName)...)
+}
+
+// readDomain reads the domain data from Mailgun API and populates the model.
+func (r *domainResource) readDomain(ctx context.Context, id string, client *mailgun.Client, model *domainResourceModel) error {
+	domainResp, err := client.GetDomain(ctx, id, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving domain: %s", err)
+		return fmt.Errorf("error retrieving domain: %w", err)
 	}
 
-	_ = d.Set("name", resp.Domain.Name)
-	_ = d.Set("smtp_login", resp.Domain.SMTPLogin)
-	_ = d.Set("wildcard", resp.Domain.Wildcard)
-	_ = d.Set("spam_action", resp.Domain.SpamAction)
-	_ = d.Set("web_scheme", resp.Domain.WebScheme)
+	model.Name = types.StringValue(domainResp.Domain.Name)
+	model.SmtpLogin = types.StringValue(domainResp.Domain.SMTPLogin)
+	model.Wildcard = types.BoolValue(domainResp.Domain.Wildcard)
+	model.SpamAction = types.StringValue(string(domainResp.Domain.SpamAction))
+	model.WebScheme = types.StringValue(domainResp.Domain.WebScheme)
 
-	receivingRecords := make([]map[string]interface{}, len(resp.ReceivingDNSRecords))
-	for i, r := range resp.ReceivingDNSRecords {
-		receivingRecords[i] = make(map[string]interface{})
-		receivingRecords[i]["id"] = r.Value
-		receivingRecords[i]["priority"] = r.Priority
-		receivingRecords[i]["valid"] = r.Valid
-		receivingRecords[i]["value"] = r.Value
-		receivingRecords[i]["record_type"] = r.RecordType
+	// Process receiving records
+	receivingRecords := make([]domainRecordModel, len(domainResp.ReceivingDNSRecords))
+	for i, r := range domainResp.ReceivingDNSRecords {
+		receivingRecords[i] = domainRecordModel{
+			ID:         types.StringValue(r.Value),
+			Priority:   types.StringValue(r.Priority),
+			Valid:      types.StringValue(r.Valid),
+			Value:      types.StringValue(r.Value),
+			RecordType: types.StringValue(r.RecordType),
+		}
 	}
-	_ = d.Set("receiving_records", receivingRecords)
-	_ = d.Set("receiving_records_set", receivingRecords)
+	model.ReceivingRecords = receivingRecords
+	model.ReceivingRecordsSet = receivingRecords
 
-	sendingRecords := make([]map[string]interface{}, len(resp.SendingDNSRecords))
-	for i, r := range resp.SendingDNSRecords {
-		sendingRecords[i] = make(map[string]interface{})
-		sendingRecords[i]["id"] = r.Name
-		sendingRecords[i]["name"] = r.Name
-		sendingRecords[i]["valid"] = r.Valid
-		sendingRecords[i]["value"] = r.Value
-		sendingRecords[i]["record_type"] = r.RecordType
-
+	// Process sending records
+	sendingRecords := make([]domainRecordModel, len(domainResp.SendingDNSRecords))
+	for i, r := range domainResp.SendingDNSRecords {
+		id := r.Name
 		if strings.Contains(r.Name, "._domainkey.") {
-			sendingRecords[i]["id"] = "_domainkey." + resp.Domain.Name
+			id = "_domainkey." + domainResp.Domain.Name
+		}
+		sendingRecords[i] = domainRecordModel{
+			ID:         types.StringValue(id),
+			Name:       types.StringValue(r.Name),
+			Valid:      types.StringValue(r.Valid),
+			Value:      types.StringValue(r.Value),
+			RecordType: types.StringValue(r.RecordType),
 		}
 	}
-	_ = d.Set("sending_records", sendingRecords)
-	_ = d.Set("sending_records_set", sendingRecords)
+	model.SendingRecords = sendingRecords
+	model.SendingRecordsSet = sendingRecords
 
-	info, err := client.GetDomainTracking(context.Background(), id)
-	var openTracking = false
-	if info.Open.Active {
-		openTracking = true
+	// Get tracking info
+	info, err := client.GetDomainTracking(ctx, id)
+	if err == nil {
+		model.OpenTracking = types.BoolValue(info.Open.Active)
+		model.ClickTracking = types.BoolValue(info.Click.Active)
 	}
-	_ = d.Set("open_tracking", openTracking)
 
-	var clickTracking = false
-	if info.Click.Active {
-		clickTracking = true
-	}
-	_ = d.Set("click_tracking", clickTracking)
-
-	return &resp, nil
+	return nil
 }

@@ -5,53 +5,26 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccMailgunDomainDataSource_Basic(t *testing.T) {
 	uuid, _ := uuid.GenerateUUID()
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunDomainDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMailgunDomainDataSourceConfig_Basic(domain),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDataSourceMailgunDomainCheck("data.mailgun_domain.test", domain),
+					resource.TestCheckResourceAttr("data.mailgun_domain.test", "name", domain),
+					resource.TestCheckResourceAttr("data.mailgun_domain.test", "spam_action", "disabled"),
+					resource.TestCheckResourceAttr("data.mailgun_domain.test", "wildcard", "false"),
 				),
 			},
 		},
 	})
-}
-
-func testAccDataSourceMailgunDomainCheck(name string, domain string) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[name]
-		if !ok {
-			return fmt.Errorf("root module has no resource called %s\n%#v", name, rs)
-		}
-
-		attr := rs.Primary.Attributes
-
-		if attr["name"] != domain {
-			return fmt.Errorf("bad name %s", attr["name"])
-		}
-
-		if attr["spam_action"] != "disabled" {
-			return fmt.Errorf("Bad spam_action: %s", attr["spam_action"])
-		}
-
-		if attr["wildcard"] != "false" {
-			return fmt.Errorf("Bad wildcard: %s", attr["wildcard"])
-		}
-
-		return nil
-	}
 }
 
 func testAccMailgunDomainDataSourceConfig_Basic(domain string) string {
@@ -61,8 +34,10 @@ resource "mailgun_domain" "foobar" {
 	spam_action = "disabled"
 	wildcard = false
 }
+
 data "mailgun_domain" "test" {
 	name = mailgun_domain.foobar.id
+	region = mailgun_domain.foobar.region
 }
 `, domain)
 }

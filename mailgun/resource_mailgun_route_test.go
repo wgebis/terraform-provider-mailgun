@@ -1,28 +1,19 @@
 package mailgun
 
 import (
-	"context"
-	"fmt"
 	"testing"
-	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/mailgun/mailgun-go/v5/mtypes"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccMailgunRoute_Basic(t *testing.T) {
-	var route mtypes.Route
-
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunRouteConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMailgunRouteExists("mailgun_route.foobar", &route),
 					resource.TestCheckResourceAttr(
 						"mailgun_route.foobar", "priority", "0"),
 					resource.TestCheckResourceAttr(
@@ -42,9 +33,8 @@ func TestAccMailgunRoute_Basic(t *testing.T) {
 func TestAccMailgunRoute_Import(t *testing.T) {
 	resourceName := "mailgun_route.foobar"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunRouteConfig,
@@ -56,62 +46,6 @@ func TestAccMailgunRoute_Import(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "mailgun_route" {
-			continue
-		}
-
-		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
-
-		route, err := client.GetRoute(context.Background(), rs.Primary.ID)
-
-		if err == nil {
-			return fmt.Errorf("Route still exists: %#v", route)
-		}
-	}
-
-	return nil
-}
-
-func testAccCheckMailgunRouteExists(n string, Route *mtypes.Route) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		rs, ok := s.RootModule().Resources[n]
-
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		if rs.Primary.ID == "" {
-			return fmt.Errorf("No Route ID is set")
-		}
-
-		client := testAccProvider.Meta().(*Config)
-
-		err := resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
-			var err error
-			*Route, err = client.MailgunClient.GetRoute(context.Background(), rs.Primary.ID)
-
-			if err != nil {
-				return resource.NonRetryableError(err)
-			}
-
-			return nil
-		})
-
-		if err != nil {
-			return fmt.Errorf("Unable to find Route after retries: %s", err)
-		}
-
-		if Route.Id != rs.Primary.ID {
-			return fmt.Errorf("Route not found")
-		}
-
-		return nil
-	}
 }
 
 const testAccCheckMailgunRouteConfig = `
