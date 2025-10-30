@@ -12,8 +12,6 @@
 name: release
 on:
   push:
-    branches:
-      - 'release-test'
     tags:
       - 'v*'
 jobs:
@@ -42,7 +40,6 @@ jobs:
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
-          version: 2.12.7
           args: release --clean
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
