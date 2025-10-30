@@ -42,7 +42,6 @@ jobs:
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
-#          version: 1.21.2
           version: 2.12.7
           args: release --clean
         env:
