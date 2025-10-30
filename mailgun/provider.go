@@ -24,6 +24,7 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"mailgun_api_key":           resourceMailgunApiKey(),
 			"mailgun_domain":            resourceMailgunDomain(),
 			"mailgun_route":             resourceMailgunRoute(),
 			"mailgun_domain_credential": resourceMailgunCredential(),
