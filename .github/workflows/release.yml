@@ -12,6 +12,8 @@
 name: release
 on:
   push:
+    branches:
+      - 'release-test'
     tags:
       - 'v*'
 jobs:
