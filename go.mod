@@ -1,6 +1,6 @@
 module github.com/terraform-providers/terraform-provider-mailgun
 
-go 1.24.1
+go 1.24
 
 require (
 	github.com/hashicorp/go-uuid v1.0.3
@@ -37,7 +37,6 @@ require (
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/kisielk/errcheck v1.9.0 // indirect
 	github.com/mailgun/errors v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
