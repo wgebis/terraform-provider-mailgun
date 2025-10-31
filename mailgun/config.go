@@ -1,6 +1,7 @@
 package mailgun
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/mailgun/mailgun-go/v5"
 	"log"
@@ -27,15 +28,28 @@ func (c *Config) GetClient(Region string) (*mailgun.Client, error) {
 
 	c.MailgunClient = mailgun.NewMailgun(c.APIKey)
 	c.Region = Region
-	c.ConfigureBaseUrl(Region)
+	err := c.ConfigureBaseUrl(Region)
+	if err != nil {
+		return nil, fmt.Errorf("Error configuring base URL: %s", err)
+	}
 
 	return c.MailgunClient, nil
 }
 
-func (c *Config) ConfigureBaseUrl(Region string) {
+func (c *Config) ConfigureBaseUrl(Region string) error {
+	var baseUrl string
 	if strings.ToLower(Region) == "eu" {
-		_ = c.MailgunClient.SetAPIBase("https://api.eu.mailgun.net/v3")
+		baseUrl = "https://api.eu.mailgun.net"
 	} else {
-		_ = c.MailgunClient.SetAPIBase("https://api.mailgun.net/v3")
+		baseUrl = "https://api.mailgun.net"
 	}
+	
+	log.Printf("[DEBUG] Setting Mailgun API base URL for region %s: %s", Region, baseUrl)
+	err := c.MailgunClient.SetAPIBase(baseUrl)
+	if err != nil {
+		return fmt.Errorf("Error setting API base URL to %s: %s", baseUrl, err)
+	}
+	
+	log.Printf("[DEBUG] Successfully configured Mailgun client for region %s", Region)
+	return nil
 }

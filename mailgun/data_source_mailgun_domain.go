@@ -1,6 +1,7 @@
 package mailgun
 
 import (
+	"log"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -15,12 +16,15 @@ func dataSourceMailgunDomain() *schema.Resource {
 }
 
 func dataSourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
-	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
+	region := d.Get("region").(string)
+	name := d.Get("name").(string)
+	
+	log.Printf("[DEBUG] Reading Mailgun domain: name=%s, region=%s", name, region)
+	
+	client, errc := meta.(*Config).GetClient(region)
 	if errc != nil {
 		return errc
 	}
-
-	name := d.Get("name").(string)
 
 	_, err := resourceMailgunDomainRetrieve(name, client, d)
 

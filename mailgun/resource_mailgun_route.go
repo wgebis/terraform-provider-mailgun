@@ -88,7 +88,7 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 	route, err := client.CreateRoute(context.Background(), opts)
 
 	if err != nil {
-		return diag.FromErr(errc)
+		return diag.FromErr(err)
 	}
 
 	d.SetId(route.Id)
@@ -99,7 +99,7 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
 
 	if err != nil {
-		return diag.FromErr(errc)
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -201,6 +201,10 @@ func resourceMailgunRouteRetrieve(id string, client *mailgun.Client, d *schema.R
 	_ = d.Set("description", route.Description)
 	_ = d.Set("expression", route.Expression)
 	_ = d.Set("actions", route.Actions)
+	// Region is not returned by API, preserve it from state
+	if region, ok := d.GetOk("region"); ok {
+		_ = d.Set("region", region)
+	}
 
 	return &route, nil
 }
