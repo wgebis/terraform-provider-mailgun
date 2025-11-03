@@ -28,7 +28,7 @@ The following arguments are supported:
 * `description` - (Required)
 * `expression` - (Required) A filter expression like `match_recipient('.*@gmail.com')`
 * `action` - (Required) Route action. This action is executed when the expression evaluates to True. Example: `forward("alice@example.com")` You can pass multiple `action` parameters.
-* `region` - (Optional) The region where domain will be created. Default value is `us`.
+* `region` - (Optional) The region where route will be created. Default value is `us`.
 
 ## Import
 
