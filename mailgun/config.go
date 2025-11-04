@@ -1,10 +1,11 @@
 package mailgun
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/mailgun/mailgun-go/v5"
 	"log"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/mailgun/mailgun-go/v5"
 )
 
 // Config struct holds API key
@@ -34,8 +35,8 @@ func (c *Config) GetClient(Region string) (*mailgun.Client, error) {
 
 func (c *Config) ConfigureBaseUrl(Region string) {
 	if strings.ToLower(Region) == "eu" {
-		_ = c.MailgunClient.SetAPIBase("https://api.eu.mailgun.net/v3")
+		_ = c.MailgunClient.SetAPIBase(mailgun.APIBaseEU)
 	} else {
-		_ = c.MailgunClient.SetAPIBase("https://api.mailgun.net/v3")
+		_ = c.MailgunClient.SetAPIBase(mailgun.APIBase)
 	}
 }

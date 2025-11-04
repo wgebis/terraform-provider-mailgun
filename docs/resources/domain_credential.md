@@ -31,7 +31,7 @@ The following arguments are supported:
 * `domain` - (Required) The domain to add credential of Mailgun.
 * `login` - (Required) The local-part of the email address to create.
 * `password` - (Required) Password for user authentication.
-* `region` - (Optional) The region where domain will be created. Default value is `us`.
+* `region` - (Optional) The region where domain credential will be created. Default value is `us`.
 
 ## Attributes Reference
 

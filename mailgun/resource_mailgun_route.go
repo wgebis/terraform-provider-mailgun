@@ -3,9 +3,10 @@ package mailgun
 import (
 	"context"
 	"fmt"
-	"github.com/mailgun/mailgun-go/v5/mtypes"
 	"log"
 	"time"
+
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -88,7 +89,7 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 	route, err := client.CreateRoute(context.Background(), opts)
 
 	if err != nil {
-		return diag.FromErr(errc)
+		return diag.FromErr(err)
 	}
 
 	d.SetId(route.Id)
@@ -99,7 +100,7 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
 
 	if err != nil {
-		return diag.FromErr(errc)
+		return diag.FromErr(err)
 	}
 
 	return nil
