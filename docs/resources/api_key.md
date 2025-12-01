@@ -26,6 +26,7 @@ resource "mailgun_api_key" "some_key" {
 The following arguments are supported:
 
 * `role` - (Required) (Enum: `admin`, `basic`, `sending`, `support`, or `developer`) Key role.
+* `region` - (Optional) The region where domain will be created. Default value is `us`.
 * `description` - (Optional) Key description.
 * `kind` - (Optional) (Enum:`domain`, `user`, or `web`). API key type. Default: `user`.
 * `expiration` - (Optional) Key lifetime in seconds, must be greater than 0 if set.
