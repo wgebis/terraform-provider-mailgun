@@ -30,6 +30,8 @@ func TestAccMailgunApiKey_Basic(t *testing.T) {
 						"mailgun_api_key.foobar", "description", "Test API key"),
 					resource.TestCheckResourceAttr(
 						"mailgun_api_key.foobar", "kind", "user"),
+					resource.TestCheckResourceAttr(
+						"mailgun_api_key.foobar", "region", "us"),
 				),
 			},
 		},
@@ -106,9 +108,10 @@ func testAccCheckMailgunApiKeyExists(n string, APIKey *mtypes.APIKey) resource.T
 func testAccCheckMailgunApiKeyConfig(id string) string {
 	return `
 resource "mailgun_api_key" "foobar" {
-    id = "` + id + `"
+  id 					= "` + id + `"
 	description = "Test API key"
-	role = "admin"
-	kind = "user"
+	role 				= "admin"
+	kind 				= "user"
+	region			= "us"
 }`
 }
