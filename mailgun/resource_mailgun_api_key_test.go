@@ -63,8 +63,8 @@ func testAccCheckMailgunApiKeyDestroy(s *terraform.State) error {
 
 func testAccCheckMailgunApiKeyAttributes(id string, APIKey *mtypes.APIKey) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if APIKey.ID != id {
-			return fmt.Errorf("Bad ID: %s", APIKey.ID)
+		if APIKey.ID == "" {
+			return fmt.Errorf("Bad ID: empty")
 		}
 
 		return nil
@@ -105,13 +105,12 @@ func testAccCheckMailgunApiKeyExists(n string, APIKey *mtypes.APIKey) resource.T
 	}
 }
 
-func testAccCheckMailgunApiKeyConfig(id string) string {
+func testAccCheckMailgunApiKeyConfig(role string) string {
 	return `
 resource "mailgun_api_key" "foobar" {
-  id 					= "` + id + `"
-	description = "Test API key"
-	role 				= "admin"
-	kind 				= "user"
+	description	= "Test API key"
+	role				= "` + role + `"
+	kind				= "user"
 	region			= "us"
 }`
 }
