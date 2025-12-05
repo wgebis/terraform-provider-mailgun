@@ -45,6 +45,8 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "web_scheme", "https"),
 					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "use_automatic_sender_security", "true"),
+					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
 					resource.TestMatchResourceAttr(
 						"mailgun_domain.foobar", "sending_records.0.name", re),
@@ -121,6 +123,10 @@ func testAccCheckMailgunDomainAttributes(domain string, DomainResp *mtypes.GetDo
 			return fmt.Errorf("Bad web scheme: %s", DomainResp.Domain.WebScheme)
 		}
 
+		if DomainResp.Domain.UseAutomaticSenderSecurity != true {
+			return fmt.Errorf("Bad use_automatic_sender_security: %t", DomainResp.Domain.UseAutomaticSenderSecurity)
+		}
+
 		if DomainResp.ReceivingDNSRecords[0].Priority == "" {
 			return fmt.Errorf("Bad receiving_records: %#v", DomainResp.ReceivingDNSRecords[0].Priority)
 		}
@@ -177,5 +183,6 @@ resource "mailgun_domain" "foobar" {
 	open_tracking = true
 	click_tracking = true
 	web_scheme = "https"
+	use_automatic_sender_security = true
 }`
 }

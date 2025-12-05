@@ -3,10 +3,11 @@ package mailgun
 import (
 	"context"
 	"fmt"
-	"github.com/mailgun/mailgun-go/v5/mtypes"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/mailgun/mailgun-go/v5/mtypes"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
@@ -220,6 +221,12 @@ func resourceMailgunDomain() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"use_automatic_sender_security": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
 		},
 		CustomizeDiff: customdiff.Sequence(
 			func(_ context.Context, diff *schema.ResourceDiff, v interface{}) error {
@@ -353,6 +360,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.Wildcard = d.Get("wildcard").(bool)
 	opts.DKIMKeySize = d.Get("dkim_key_size").(int)
 	opts.ForceDKIMAuthority = d.Get("force_dkim_authority").(bool)
+	opts.UseAutomaticSenderSecurity = d.Get("use_automatic_sender_security").(bool)
 	opts.WebScheme = d.Get("web_scheme").(string)
 	var dkimSelector = d.Get("dkim_selector").(string)
 	var openTracking = d.Get("open_tracking").(bool)
@@ -464,6 +472,7 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.Client, d *schema.
 	_ = d.Set("wildcard", resp.Domain.Wildcard)
 	_ = d.Set("spam_action", resp.Domain.SpamAction)
 	_ = d.Set("web_scheme", resp.Domain.WebScheme)
+	_ = d.Set("use_automatic_sender_security", resp.Domain.UseAutomaticSenderSecurity)
 
 	receivingRecords := make([]map[string]interface{}, len(resp.ReceivingDNSRecords))
 	for i, r := range resp.ReceivingDNSRecords {

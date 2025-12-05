@@ -78,6 +78,7 @@ The following arguments are supported:
 * `open_tracking` - (Optional) (Enum: `yes` or `no`) The open tracking settings for the domain. Default: `no`
 * `click_tracking` - (Optional) (Enum: `yes` or `no`) The click tracking settings for the domain. Default: `no`
 * `web_scheme` - (Optional) (`http` or `https`) The tracking web scheme. Default: `http`
+* `use_automatic_sender_security` - (Optional) If true Mailgun manages DKIM key generation and DNS record configuration automatically. Default: `false`
 
 ## Attributes Reference
 
@@ -92,6 +93,7 @@ The following attributes are exported:
 * `open_tracking` - The open tracking setting.
 * `click_tracking` - The click tracking setting.
 * `web_scheme` - The tracking web scheme.
+* `use_automatic_sender_security` - Whether or not automatic sender sender security is enabled.
 * `receiving_records` - A list of DNS records for receiving validation.  **Deprecated** Use `receiving_records_set` instead.
   * `priority` - The priority of the record.
   * `record_type` - The record type.
