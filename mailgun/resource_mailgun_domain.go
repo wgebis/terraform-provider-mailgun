@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/mailgun/mailgun-go/v5/mtypes"
@@ -493,6 +494,10 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.Client, d *schema.
 		sendingRecords[i]["valid"] = r.Valid
 		sendingRecords[i]["value"] = r.Value
 		sendingRecords[i]["record_type"] = r.RecordType
+
+		if strings.Contains(r.Name, "._domainkey.") && !resp.Domain.UseAutomaticSenderSecurity {
+			sendingRecords[i]["id"] = "_domainkey." + resp.Domain.Name
+		}
 	}
 	_ = d.Set("sending_records", sendingRecords)
 	_ = d.Set("sending_records_set", sendingRecords)
