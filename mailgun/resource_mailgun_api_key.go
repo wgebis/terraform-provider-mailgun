@@ -180,7 +180,9 @@ func resourceMailgunApiKeyRetrieve(id string, client *mailgun.Client, d *schema.
 	}
 
 	_ = d.Set("requestor", apiKey.Requestor)
-	_ = d.Set("secret", apiKey.Secret)
+	if apiKey.Secret != "" {
+		_ = d.Set("secret", apiKey.Secret)
+	}
 
 	return nil
 }
