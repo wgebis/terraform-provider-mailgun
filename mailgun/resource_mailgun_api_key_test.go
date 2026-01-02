@@ -30,6 +30,8 @@ func TestAccMailgunApiKey_Basic(t *testing.T) {
 						"mailgun_api_key.foobar", "description", "Test API key"),
 					resource.TestCheckResourceAttr(
 						"mailgun_api_key.foobar", "kind", "user"),
+					resource.TestCheckResourceAttr(
+						"mailgun_api_key.foobar", "region", "us"),
 				),
 			},
 		},
@@ -59,10 +61,10 @@ func testAccCheckMailgunApiKeyDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckMailgunApiKeyAttributes(id string, APIKey *mtypes.APIKey) resource.TestCheckFunc {
+func testAccCheckMailgunApiKeyAttributes(role string, APIKey *mtypes.APIKey) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if APIKey.ID != id {
-			return fmt.Errorf("Bad ID: %s", APIKey.ID)
+		if APIKey.Role != role {
+			return fmt.Errorf("Bad role: %s", APIKey.Role)
 		}
 
 		return nil
@@ -103,12 +105,12 @@ func testAccCheckMailgunApiKeyExists(n string, APIKey *mtypes.APIKey) resource.T
 	}
 }
 
-func testAccCheckMailgunApiKeyConfig(id string) string {
+func testAccCheckMailgunApiKeyConfig(role string) string {
 	return `
 resource "mailgun_api_key" "foobar" {
-    id = "` + id + `"
-	description = "Test API key"
-	role = "admin"
+	description	= "Test API key"
+	role = "` + role + `"
 	kind = "user"
+	region = "us"
 }`
 }

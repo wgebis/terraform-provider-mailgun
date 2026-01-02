@@ -32,6 +32,12 @@ func resourceMailgunApiKey() *schema.Resource {
 				ForceNew: true,
 				Default:  "user",
 			},
+			"region": {
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+				Default:  "us",
+			},
 			"role": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -84,7 +90,7 @@ func resourceMailgunApiKey() *schema.Resource {
 }
 
 func resourceMailgunApiKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClient("us")
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
@@ -121,7 +127,7 @@ func resourceMailgunApiKeyCreate(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceMailgunApiKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client, errc := meta.(*Config).GetClient("us")
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
@@ -139,7 +145,7 @@ func resourceMailgunApiKeyDelete(ctx context.Context, d *schema.ResourceData, me
 
 func resourceMailgunApiKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 
-	client, errc := meta.(*Config).GetClient("us")
+	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
