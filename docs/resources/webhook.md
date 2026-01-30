@@ -36,3 +36,17 @@ The following attributes are exported:
 * `region` - The name of the region.
 * `kind` - The kind of the webhook.
 * `urls` - The urls of the webhook.
+
+## Import
+
+Webhooks can be imported using the `region:domain:kind` or `domain:kind` format:
+
+```
+terraform import mailgun_webhook.default us:test.example.com:delivered
+```
+
+or using the default region (us):
+
+```
+terraform import mailgun_webhook.default test.example.com:delivered
+```

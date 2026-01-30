@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -65,8 +66,31 @@ func resourceMailgunWebhook() *schema.Resource {
 }
 
 func resourceMailgunWebhookImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	setDefaultRegionForImport(d)
+	log.Printf("[DEBUG] Import ID: %s", d.Id())
+	parts := strings.SplitN(d.Id(), ":", 3)
+	log.Printf("[DEBUG] Split parts: %v", parts)
 
+	var region, domain, kind string
+
+	switch len(parts) {
+	case 2:
+		region = "us"
+		domain = parts[0]
+		kind = parts[1]
+	case 3:
+		region = parts[0]
+		domain = parts[1]
+		kind = parts[2]
+	default:
+		return nil, fmt.Errorf("invalid import ID format. Expected 'region:domain:kind' or 'domain:kind'")
+	}
+
+	log.Printf("[DEBUG] Setting region=%s, domain=%s, kind=%s", region, domain, kind)
+	_ = d.Set("region", region)
+	_ = d.Set("domain", domain)
+	_ = d.Set("kind", kind)
+
+	log.Printf("[DEBUG] After setting - region: %s, domain: %s, kind: %s", d.Get("region"), d.Get("domain"), d.Get("kind"))
 	return []*schema.ResourceData{d}, nil
 }
 
