@@ -22,11 +22,15 @@ resource "mailgun_domain" "default" {
 }
 ```
 
-Here’s an example using the [Cloudflare provider](https://registry.terraform.io/providers/cloudflare/cloudflare/latest). Bear in mind that the solution below requires the Cloudflare provider to be included in your project. Also, the Mailgun provider isn’t associated with Cloudflare, and other Terraform providers that can control DNS may require a slightly different implementation.
+Here's an example using the [Cloudflare provider](https://registry.terraform.io/providers/cloudflare/cloudflare/latest). Bear in mind that the solution below requires the Cloudflare provider to be included in your project. Also, the Mailgun provider isn't associated with Cloudflare, and other Terraform providers that can control DNS may require a slightly different implementation.
+
+For detailed setup instructions, see Mailgun's [Domain Verification Setup Guide](https://help.mailgun.com/hc/en-us/articles/32884702360603-Domain-Verification-Setup-Guide) or the [Cloudflare DNS Setup Guide](https://help.mailgun.com/hc/en-us/articles/15585722150299-Cloudflare-DNS-Setup-Guide).
 
 ```hcl
 # Use receiving/sending set attributes to create DNS entries
-resource "cloudflare_record" "default_receiving" {
+# TTL is set to 300 seconds (5 minutes) for faster updates as recommended by Mailgun
+# You can adjust the TTL to your desired value
+resource "cloudflare_dns_record" "default_receiving" {
   for_each = {
     for record in mailgun_domain.default.receiving_records_set : record.id => {
       type     = record.record_type
@@ -39,11 +43,12 @@ resource "cloudflare_record" "default_receiving" {
   name     = var.domain
 
   type     = each.value.type
-  value    = each.value.value
+  content  = each.value.value
   priority = each.value.priority
+  ttl      = 300
 }
 
-resource "cloudflare_record" "default_sending" {
+resource "cloudflare_dns_record" "default_sending" {
   for_each = {
     for record in mailgun_domain.default.sending_records_set : record.id => {
       name  = record.name
@@ -56,7 +61,22 @@ resource "cloudflare_record" "default_sending" {
 
   name    = each.value.name
   type    = each.value.type
-  value   = each.value.value
+  content = each.value.value
+  ttl     = 300
+}
+
+# Create MX records pointing to Mailgun
+# Use "@" for name if using the root domain, or the subdomain name if using a subdomain
+resource "cloudflare_dns_record" "mx_records" {
+  for_each = toset(["mxa.mailgun.org", "mxb.mailgun.org"])
+
+  zone_id = var.zone_id
+
+  name     = "@"  # Use "@" for root domain or subdomain name (e.g., "mail") for subdomains
+  type     = "MX"
+  content  = each.value
+  priority = 10
+  ttl      = 300
 }
 ```
 
