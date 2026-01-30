@@ -70,21 +70,25 @@ func resourceMailgunWebhookImport(ctx context.Context, d *schema.ResourceData, m
 	parts := strings.SplitN(d.Id(), ":", 3)
 	log.Printf("[DEBUG] Split parts: %v", parts)
 
-	if len(parts) == 3 {
-		// Format: region:domain:kind
-		log.Printf("[DEBUG] Setting region=%s, domain=%s, kind=%s", parts[0], parts[1], parts[2])
-		_ = d.Set("region", parts[0])
-		_ = d.Set("domain", parts[1])
-		_ = d.Set("kind", parts[2])
-	} else if len(parts) == 2 {
-		// Format: domain:kind (use default region)
-		log.Printf("[DEBUG] Setting region=us, domain=%s, kind=%s", parts[0], parts[1])
-		_ = d.Set("region", "us")
-		_ = d.Set("domain", parts[0])
-		_ = d.Set("kind", parts[1])
-	} else {
+	var region, domain, kind string
+
+	switch len(parts) {
+	case 2:
+		region = "us"
+		domain = parts[0]
+		kind = parts[1]
+	case 3:
+		region = parts[0]
+		domain = parts[1]
+		kind = parts[2]
+	default:
 		return nil, fmt.Errorf("invalid import ID format. Expected 'region:domain:kind' or 'domain:kind'")
 	}
+
+	log.Printf("[DEBUG] Setting region=%s, domain=%s, kind=%s", region, domain, kind)
+	_ = d.Set("region", region)
+	_ = d.Set("domain", domain)
+	_ = d.Set("kind", kind)
 
 	log.Printf("[DEBUG] After setting - region: %s, domain: %s, kind: %s", d.Get("region"), d.Get("domain"), d.Get("kind"))
 	return []*schema.ResourceData{d}, nil
