@@ -97,6 +97,13 @@ func resourceMailgunDomain() *schema.Resource {
 				Default:  "http",
 			},
 
+			"web_prefix": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				Default:  "email",
+			},
+
 			"receiving_records": {
 				Type:       schema.TypeList,
 				Computed:   true,
@@ -291,6 +298,7 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 	var openTracking = d.Get("open_tracking").(bool)
 	var clickTracking = d.Get("click_tracking").(bool)
 	var webScheme = d.Get("web_scheme").(string)
+	var webPrefix = d.Get("web_prefix").(string)
 
 	// Retrieve and update state of domain
 	_, errc = resourceMailgunDomainRetrieve(d.Id(), client, &currentData)
@@ -332,9 +340,10 @@ func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, me
 		}
 	}
 
-	if currentData.Get("web_scheme") != webScheme {
+	if currentData.Get("web_scheme") != webScheme || currentData.Get("web_prefix") != webPrefix {
 		opts := mailgun.UpdateDomainOptions{}
 		opts.WebScheme = webScheme
+		opts.WebPrefix = webPrefix
 		errc = client.UpdateDomain(ctx, name, &opts)
 
 		if errc != nil {
@@ -362,6 +371,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.ForceDKIMAuthority = d.Get("force_dkim_authority").(bool)
 	opts.UseAutomaticSenderSecurity = d.Get("use_automatic_sender_security").(bool)
 	opts.WebScheme = d.Get("web_scheme").(string)
+	opts.WebPrefix = d.Get("web_prefix").(string)
 	var dkimSelector = d.Get("dkim_selector").(string)
 	var openTracking = d.Get("open_tracking").(bool)
 	var clickTracking = d.Get("click_tracking").(bool)
@@ -472,6 +482,7 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.Client, d *schema.
 	_ = d.Set("wildcard", resp.Domain.Wildcard)
 	_ = d.Set("spam_action", resp.Domain.SpamAction)
 	_ = d.Set("web_scheme", resp.Domain.WebScheme)
+	_ = d.Set("web_prefix", resp.Domain.WebPrefix)
 	_ = d.Set("use_automatic_sender_security", resp.Domain.UseAutomaticSenderSecurity)
 
 	receivingRecords := make([]map[string]interface{}, len(resp.ReceivingDNSRecords))
