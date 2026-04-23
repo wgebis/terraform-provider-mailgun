@@ -371,8 +371,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	opts.ForceDKIMAuthority = d.Get("force_dkim_authority").(bool)
 	opts.UseAutomaticSenderSecurity = d.Get("use_automatic_sender_security").(bool)
 	opts.WebScheme = d.Get("web_scheme").(string)
-	// FIXME: when library support this field, use opts
-	var webPrefix = d.Get("web_prefix").(string)
+	opts.WebPrefix = d.Get("web_prefix").(string)
 	var dkimSelector = d.Get("dkim_selector").(string)
 	var openTracking = d.Get("open_tracking").(bool)
 	var clickTracking = d.Get("click_tracking").(bool)
@@ -402,16 +401,6 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	if clickTracking {
 		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), "yes")
 
-		if errc != nil {
-			return diag.FromErr(errc)
-		}
-	}
-
-	// If web_prefix is different from the default value, apply it
-	if webPrefix != "email" {
-		opts := mailgun.UpdateDomainOptions{}
-		opts.WebPrefix = webPrefix
-		errc = client.UpdateDomain(ctx, name, &opts)
 		if errc != nil {
 			return diag.FromErr(errc)
 		}
