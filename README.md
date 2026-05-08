@@ -14,18 +14,20 @@ Requirements
 Architecture
 ------------
 
-The provider is being migrated from `terraform-plugin-sdk/v2` to
-`terraform-plugin-framework`. Both runtimes are served from a single binary
-through `terraform-plugin-mux` (`tf6muxserver`), so resources can be moved
-across one at a time without breaking existing configurations.
+All resources and data sources are implemented on top of
+`terraform-plugin-framework` (protocol v6) and live in `internal/framework/`.
+A thin `terraform-plugin-sdk/v2` provider stub remains, served alongside the
+framework provider through `terraform-plugin-mux` (`tf6muxserver`); it has no
+resources of its own and exists only as a transitional shim until the SDKv2
+dependency is dropped from `go.mod`.
 
 | Resource / data source | Runtime |
 |---|---|
 | `mailgun_domain` (resource + data source) | terraform-plugin-framework |
-| `mailgun_route` | terraform-plugin-sdk/v2 |
-| `mailgun_domain_credential` | terraform-plugin-sdk/v2 |
-| `mailgun_webhook` | terraform-plugin-sdk/v2 |
-| `mailgun_api_key` | terraform-plugin-sdk/v2 |
+| `mailgun_route` | terraform-plugin-framework |
+| `mailgun_domain_credential` | terraform-plugin-framework |
+| `mailgun_webhook` | terraform-plugin-framework |
+| `mailgun_api_key` | terraform-plugin-framework |
 
 The `mailgun_domain` schema was bumped to version `1`; a state upgrader
 handles state produced by previous releases (it drops the deprecated
