@@ -1,4 +1,4 @@
-package mailgun
+package mailgun_test
 
 import (
 	"context"
@@ -15,9 +15,9 @@ func TestAccMailgunRoute_Basic(t *testing.T) {
 	var route mtypes.Route
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunRouteConfig,
@@ -42,9 +42,9 @@ func TestAccMailgunRoute_Basic(t *testing.T) {
 func TestAccMailgunRoute_Import(t *testing.T) {
 	resourceName := "mailgun_route.foobar"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunRouteConfig,
@@ -62,9 +62,9 @@ func TestAccMailgunRoute_Update(t *testing.T) {
 	var route mtypes.Route
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunRouteConfig,
@@ -96,9 +96,9 @@ func TestAccMailgunRoute_Recreate(t *testing.T) {
 	var route mtypes.Route
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunRouteDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunRouteConfig,
@@ -108,7 +108,7 @@ func TestAccMailgunRoute_Recreate(t *testing.T) {
 			},
 			{
 				PreConfig: func() {
-					client, err := testAccProvider.Meta().(*Config).GetClient("us")
+					client, err := mailgunClientFor("us")
 					if err != nil {
 						t.Fatalf("get client: %s", err)
 					}
@@ -132,7 +132,7 @@ func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		client, _ := mailgunClientFor(rs.Primary.Attributes["region"])
 
 		route, err := client.GetRoute(context.Background(), rs.Primary.ID)
 
@@ -156,7 +156,7 @@ func testAccCheckMailgunRouteExists(n string, Route *mtypes.Route) resource.Test
 			return fmt.Errorf("No Route ID is set")
 		}
 
-		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		client, errc := mailgunClientFor(rs.Primary.Attributes["region"])
 		if errc != nil {
 			return errc
 		}

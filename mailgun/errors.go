@@ -20,3 +20,7 @@ func isNotFound(err error) bool {
 	}
 	return mailgun.GetStatusFromErr(err) == http.StatusNotFound
 }
+
+// IsNotFound is the exported form of isNotFound for use by the framework
+// resources package.
+func IsNotFound(err error) bool { return isNotFound(err) }

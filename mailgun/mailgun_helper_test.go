@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/mailgun/mailgun-go/v5"
 )
 
@@ -74,25 +72,6 @@ func TestGenerateId(t *testing.T) {
 	want := "eu:example.com:delivered"
 	if got != want {
 		t.Errorf("generateId = %q, want %q", got, want)
-	}
-}
-
-func TestDomainRecordsSchemaSetFunc(t *testing.T) {
-	a := domainRecordsSchemaSetFunc(map[string]interface{}{"id": "rec-1"})
-	b := domainRecordsSchemaSetFunc(map[string]interface{}{"id": "rec-1"})
-	c := domainRecordsSchemaSetFunc(map[string]interface{}{"id": "rec-2"})
-
-	if a != b {
-		t.Errorf("hash for same id should match: %d != %d", a, b)
-	}
-	if a == c {
-		t.Errorf("hash for different ids should differ: %d == %d", a, c)
-	}
-	if domainRecordsSchemaSetFunc("not-a-map") != 0 {
-		t.Errorf("non-map input should hash to 0")
-	}
-	if domainRecordsSchemaSetFunc(map[string]interface{}{"other": "x"}) != 0 {
-		t.Errorf("missing id should hash to 0")
 	}
 }
 
@@ -204,61 +183,6 @@ func TestResourceMailgunWebhookImport(t *testing.T) {
 	}
 }
 
-// TestDomainCustomizeDiff_PrePopulatesRecordSets verifies that on creation
-// (or whenever `name` changes) the CustomizeDiff sequence pre-populates
-// sending_records_set with 3 entries (apex, _domainkey, email) and
-// receiving_records_set with the two MX hosts. Otherwise plan output would
-// show those Computed sets as "known after apply" with no detail.
-func TestDomainCustomizeDiff_PrePopulatesRecordSets(t *testing.T) {
-	r := resourceMailgunDomain()
-
-	cfg := terraform.NewResourceConfigRaw(map[string]interface{}{
-		"name":   "example.com",
-		"region": "us",
-	})
-
-	diff, err := r.Diff(context.Background(), nil, cfg, nil)
-	if err != nil {
-		t.Fatalf("Diff returned error: %v", err)
-	}
-	if diff == nil {
-		t.Fatal("Diff returned nil InstanceDiff")
-	}
-
-	wantSendingIDs := map[string]bool{
-		"example.com":            false,
-		"_domainkey.example.com": false,
-		"email.example.com":      false,
-	}
-	wantReceivingIDs := map[string]bool{
-		"mxa.mailgun.org": false,
-		"mxb.mailgun.org": false,
-	}
-
-	for k, v := range diff.Attributes {
-		if !strings.HasSuffix(k, ".id") {
-			continue
-		}
-		switch {
-		case strings.HasPrefix(k, "sending_records_set."):
-			if _, ok := wantSendingIDs[v.New]; ok {
-				wantSendingIDs[v.New] = true
-			}
-		case strings.HasPrefix(k, "receiving_records_set."):
-			if _, ok := wantReceivingIDs[v.New]; ok {
-				wantReceivingIDs[v.New] = true
-			}
-		}
-	}
-
-	for id, seen := range wantSendingIDs {
-		if !seen {
-			t.Errorf("sending_records_set missing entry with id=%q; diff: %#v", id, diff.Attributes)
-		}
-	}
-	for id, seen := range wantReceivingIDs {
-		if !seen {
-			t.Errorf("receiving_records_set missing entry with id=%q; diff: %#v", id, diff.Attributes)
-		}
-	}
-}
+// Domain CustomizeDiff has been replaced by ModifyPlan in the framework
+// resource (internal/framework/domain_resource.go). Equivalent coverage lives
+// in framework acceptance tests.

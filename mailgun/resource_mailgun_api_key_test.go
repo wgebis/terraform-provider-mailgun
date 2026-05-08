@@ -1,4 +1,4 @@
-package mailgun
+package mailgun_test
 
 import (
 	"context"
@@ -15,9 +15,9 @@ func TestAccMailgunApiKey_Basic(t *testing.T) {
 	role := "admin"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunApiKeyDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunApiKeyDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunApiKeyConfig(role),
@@ -44,7 +44,7 @@ func testAccCheckMailgunApiKeyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		client, errc := mailgunClientFor(rs.Primary.Attributes["region"])
 		if errc != nil {
 			return errc
 		}
@@ -83,7 +83,7 @@ func testAccCheckMailgunApiKeyExists(n string, APIKey *mtypes.APIKey) resource.T
 			return fmt.Errorf("No API key ID is set")
 		}
 
-		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		client, errc := mailgunClientFor(rs.Primary.Attributes["region"])
 		if errc != nil {
 			return errc
 		}

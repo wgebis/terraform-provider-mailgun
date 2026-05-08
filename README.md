@@ -9,7 +9,28 @@ Requirements
 ------------
 
 -	[Terraform](https://www.terraform.io/downloads.html) 1.0+
--	[Go](https://golang.org/doc/install) 1.24.1 (to build the provider plugin)
+-	[Go](https://golang.org/doc/install) 1.25+ (to build the provider plugin)
+
+Architecture
+------------
+
+The provider is being migrated from `terraform-plugin-sdk/v2` to
+`terraform-plugin-framework`. Both runtimes are served from a single binary
+through `terraform-plugin-mux` (`tf6muxserver`), so resources can be moved
+across one at a time without breaking existing configurations.
+
+| Resource / data source | Runtime |
+|---|---|
+| `mailgun_domain` (resource + data source) | terraform-plugin-framework |
+| `mailgun_route` | terraform-plugin-sdk/v2 |
+| `mailgun_domain_credential` | terraform-plugin-sdk/v2 |
+| `mailgun_webhook` | terraform-plugin-sdk/v2 |
+| `mailgun_api_key` | terraform-plugin-sdk/v2 |
+
+The `mailgun_domain` schema was bumped to version `1`; a state upgrader
+handles state produced by previous releases (it drops the deprecated
+`sending_records` / `receiving_records` lists in favour of the
+`*_records_set` attributes).
 
 Building The Provider
 ---------------------

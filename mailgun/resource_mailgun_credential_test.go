@@ -1,4 +1,4 @@
-package mailgun
+package mailgun_test
 
 import (
 	"context"
@@ -18,9 +18,9 @@ func TestAccMailgunDomainCredential_Basic(t *testing.T) {
 	domain := fmt.Sprintf("terraformcred.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunCredentialDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunCredentialDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunCredentialConfig(domain),
@@ -46,9 +46,9 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunCredentialDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunCredentialDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunCredentialConfig(domain),
@@ -88,9 +88,9 @@ func TestAccMailgunDomainCredential_Import(t *testing.T) {
 	domain := fmt.Sprintf("terraformcredimp.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunCredentialDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunCredentialDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunCredentialConfig(domain),
@@ -114,7 +114,7 @@ func testAccCheckMailgunCredentialDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, err := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		client, err := mailgunClientFor(rs.Primary.Attributes["region"])
 		if err != nil {
 			return err
 		}
@@ -161,7 +161,7 @@ func testAccCheckMailgunCredentialExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No domain credential ID is set")
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		client, _ := mailgunClientFor(rs.Primary.Attributes["region"])
 
 		itCredentials := client.ListCredentials(rs.Primary.Attributes["domain"], nil)
 

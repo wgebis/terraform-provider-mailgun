@@ -1,4 +1,4 @@
-package mailgun
+package mailgun_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ func TestAccMailgunWebhook_Basic(t *testing.T) {
 	domain := fmt.Sprintf("terraformcred.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunWebhookConfig(domain),
@@ -44,9 +44,9 @@ func TestAccMailgunWebhook_Import(t *testing.T) {
 	domain := fmt.Sprintf("terraform.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunWebhookConfig(domain),
@@ -66,9 +66,9 @@ func TestAccMailgunWebhook_Update(t *testing.T) {
 	domain := fmt.Sprintf("terraformwh.%s.com", uuid)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunWebhookConfig(domain),
@@ -93,7 +93,7 @@ func testAccCheckMailgunWebhookDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, _ := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		client, _ := mailgunClientFor(rs.Primary.Attributes["region"])
 
 		kind := rs.Primary.Attributes["kind"]
 		webhooks, err := client.GetWebhook(context.Background(), rs.Primary.Attributes["domain"], kind)

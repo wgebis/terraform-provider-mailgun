@@ -18,8 +18,11 @@ func TestProviderSchema_ApiKeySensitive(t *testing.T) {
 	if !field.Sensitive {
 		t.Error("provider api_key must be marked Sensitive")
 	}
-	if !field.Required {
-		t.Error("provider api_key must be Required")
+	// api_key is Optional at the schema level (env var fallback handled in
+	// providerConfigure) so the framework provider can declare an identical
+	// schema and tf6muxserver can merge them without conflicts.
+	if !field.Optional {
+		t.Error("provider api_key must be Optional")
 	}
 }
 
@@ -41,11 +44,12 @@ func TestApiKeySchema_SecretSensitiveAndComputed(t *testing.T) {
 }
 
 func TestRegionDefault(t *testing.T) {
+	// mailgun_domain is owned by the framework provider; covered by a
+	// separate test in internal/framework/.
 	resources := map[string]*schema.Resource{
 		"mailgun_route":             resourceMailgunRoute(),
 		"mailgun_webhook":           resourceMailgunWebhook(),
 		"mailgun_domain_credential": resourceMailgunCredential(),
-		"mailgun_domain":            resourceMailgunDomain(),
 		"mailgun_api_key":           resourceMailgunApiKey(),
 	}
 

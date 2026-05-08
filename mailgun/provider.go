@@ -3,6 +3,7 @@ package mailgun
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -13,20 +14,17 @@ func Provider() *schema.Provider {
 	p := &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"api_key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Sensitive:   true,
-				DefaultFunc: schema.EnvDefaultFunc("MAILGUN_API_KEY", nil),
+				Type:      schema.TypeString,
+				Optional:  true,
+				Sensitive: true,
 			},
 		},
 
-		DataSourcesMap: map[string]*schema.Resource{
-			"mailgun_domain": dataSourceMailgunDomain(),
-		},
+		// mailgun_domain is served by the framework provider via tf6muxserver.
+		DataSourcesMap: map[string]*schema.Resource{},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"mailgun_api_key":           resourceMailgunApiKey(),
-			"mailgun_domain":            resourceMailgunDomain(),
 			"mailgun_route":             resourceMailgunRoute(),
 			"mailgun_domain_credential": resourceMailgunCredential(),
 			"mailgun_webhook":           resourceMailgunWebhook(),
@@ -41,9 +39,15 @@ func Provider() *schema.Provider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	config := Config{
-		APIKey: d.Get("api_key").(string),
+	apiKey := d.Get("api_key").(string)
+	if apiKey == "" {
+		apiKey = os.Getenv("MAILGUN_API_KEY")
 	}
+	if apiKey == "" {
+		return nil, diag.Errorf("api_key is required: set the api_key provider argument or the MAILGUN_API_KEY environment variable")
+	}
+
+	config := Config{APIKey: apiKey}
 
 	log.Println("[INFO] Initializing Mailgun client")
 	return config.Client()
