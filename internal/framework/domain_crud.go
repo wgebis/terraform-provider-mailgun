@@ -71,14 +71,15 @@ func (r *domainResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 	// Mailgun never returns smtp_password from GetDomain, so apply precedence:
 	// 1) value from the user's plan if known, 2) value returned by CreateDomain
-	// (Mailgun generates one when omitted), 3) empty string as last resort.
+	// (Mailgun generates one when omitted), 3) null - matches what ImportState
+	// produces, otherwise ImportStateVerify sees a "" vs null drift.
 	switch {
 	case !planPwd.IsNull() && !planPwd.IsUnknown():
 		plan.SmtpPassword = planPwd
 	case createResp.Domain.SMTPPassword != "":
 		plan.SmtpPassword = types.StringValue(createResp.Domain.SMTPPassword)
 	default:
-		plan.SmtpPassword = types.StringValue("")
+		plan.SmtpPassword = types.StringNull()
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)

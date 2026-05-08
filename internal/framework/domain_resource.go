@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	mailgunpkg "github.com/wgebis/terraform-provider-mailgun/mailgun"
 )
@@ -15,7 +14,6 @@ import (
 var (
 	_ resource.Resource                 = (*domainResource)(nil)
 	_ resource.ResourceWithImportState  = (*domainResource)(nil)
-	_ resource.ResourceWithModifyPlan   = (*domainResource)(nil)
 	_ resource.ResourceWithConfigure    = (*domainResource)(nil)
 	_ resource.ResourceWithUpgradeState = (*domainResource)(nil)
 )
@@ -50,67 +48,16 @@ func (r *domainResource) Configure(_ context.Context, req resource.ConfigureRequ
 	r.cfg = cfg
 }
 
-// ModifyPlan pre-populates *_records_set during create/replace so the plan
-// shows users the predictable DNS records they will need to add. This mirrors
-// the legacy CustomizeDiff behaviour.
-func (r *domainResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if req.Plan.Raw.IsNull() {
-		return
-	}
-
-	var plan, state domainResourceModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	nameChanged := req.State.Raw.IsNull()
-	if !nameChanged {
-		resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		nameChanged = !plan.Name.Equal(state.Name)
-	}
-	if !nameChanged || plan.Name.IsUnknown() || plan.Name.IsNull() {
-		return
-	}
-
-	name := plan.Name.ValueString()
-	sending := []sendingRecordModel{
-		{ID: types.StringValue(name)},
-		{ID: types.StringValue("_domainkey." + name)},
-		{ID: types.StringValue("email." + name)},
-	}
-	for i := range sending {
-		sending[i].Name = types.StringUnknown()
-		sending[i].RecordType = types.StringUnknown()
-		sending[i].Valid = types.StringUnknown()
-		sending[i].Value = types.StringUnknown()
-	}
-	sendingSet, d := types.SetValueFrom(ctx, sendingRecordObjectType(), sending)
-	resp.Diagnostics.Append(d...)
-
-	receiving := []receivingRecordModel{
-		{ID: types.StringValue("mxa.mailgun.org")},
-		{ID: types.StringValue("mxb.mailgun.org")},
-	}
-	for i := range receiving {
-		receiving[i].Priority = types.StringUnknown()
-		receiving[i].RecordType = types.StringUnknown()
-		receiving[i].Valid = types.StringUnknown()
-		receiving[i].Value = types.StringUnknown()
-	}
-	receivingSet, d := types.SetValueFrom(ctx, receivingRecordObjectType(), receiving)
-	resp.Diagnostics.Append(d...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("sending_records_set"), sendingSet)...)
-	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("receiving_records_set"), receivingSet)...)
-}
+// No ModifyPlan: the previous implementation tried to pre-populate
+// sending_records_set / receiving_records_set during create/replace so users
+// would see predictable DNS record ids in the plan. The prediction was
+// inherently unreliable — the DKIM record id depends on the Mailgun-default
+// selector when dkim_selector is not set, and the API can return a different
+// number of records than predicted (e.g. tracking entries). Both led to
+// "planned set element does not correlate" / "length changed" errors after
+// apply. Computed + setplanmodifier.UseStateForUnknown on the schema is
+// sufficient to keep these stable across refreshes; on first create the plan
+// simply shows "(known after apply)".
 
 // UpgradeState drops the deprecated sending_records / receiving_records
 // TypeList attributes from state created by SDKv2 (schema version 0).
