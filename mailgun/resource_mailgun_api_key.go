@@ -114,14 +114,10 @@ func resourceMailgunApiKeyCreate(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(apiKey.ID)
-	d.Set("requestor", apiKey.Requestor)
-	d.Set("secret", apiKey.Secret)
+	_ = d.Set("requestor", apiKey.Requestor)
+	_ = d.Set("secret", apiKey.Secret)
 
 	log.Printf("[INFO] API key ID: %s", d.Id())
-
-	if err != nil {
-		return diag.FromErr(errc)
-	}
 
 	return nil
 }
@@ -135,7 +131,7 @@ func resourceMailgunApiKeyDelete(ctx context.Context, d *schema.ResourceData, me
 	log.Printf("[INFO] Deleting API key: %s", d.Id())
 
 	// Destroy the API key
-	err := client.DeleteAPIKey(context.Background(), d.Id())
+	err := client.DeleteAPIKey(ctx, d.Id())
 	if err != nil {
 		return diag.Errorf("Error deleting API key: %s", err)
 	}
@@ -150,7 +146,7 @@ func resourceMailgunApiKeyRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(errc)
 	}
 
-	err := resourceMailgunApiKeyRetrieve(d.Id(), client, d)
+	err := resourceMailgunApiKeyRetrieve(ctx, d.Id(), client, d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -159,8 +155,8 @@ func resourceMailgunApiKeyRead(ctx context.Context, d *schema.ResourceData, meta
 	return nil
 }
 
-func resourceMailgunApiKeyRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) error {
-	resp, err := client.ListAPIKeys(context.Background(), nil)
+func resourceMailgunApiKeyRetrieve(ctx context.Context, id string, client *mailgun.Client, d *schema.ResourceData) error {
+	resp, err := client.ListAPIKeys(ctx, nil)
 
 	if err != nil {
 		return fmt.Errorf("Error retrieving API key list: %s", err)
@@ -176,11 +172,28 @@ func resourceMailgunApiKeyRetrieve(id string, client *mailgun.Client, d *schema.
 
 	if apiKey.ID == "" {
 		log.Printf("[DEBUG] API key not found with ID: %s", d.Id())
-		return fmt.Errorf("API key not found: %s", id)
+		d.SetId("")
+		return nil
 	}
 
-	_ = d.Set("requestor", apiKey.Requestor)
-	_ = d.Set("secret", apiKey.Secret)
-
+	applyAPIKey(d, apiKey)
 	return nil
+}
+
+// applyAPIKey copies fields from apiKey into d. The secret is preserved when
+// the API returns an empty value because Mailgun only returns it on creation
+// (regression #73).
+func applyAPIKey(d *schema.ResourceData, apiKey mtypes.APIKey) {
+	_ = d.Set("description", apiKey.Description)
+	_ = d.Set("kind", apiKey.Kind)
+	_ = d.Set("role", apiKey.Role)
+	_ = d.Set("domain_name", apiKey.DomainName)
+	_ = d.Set("user_name", apiKey.UserName)
+	_ = d.Set("requestor", apiKey.Requestor)
+	_ = d.Set("is_disabled", apiKey.IsDisabled)
+	_ = d.Set("disabled_reason", apiKey.DisabledReason)
+
+	if apiKey.Secret != "" {
+		_ = d.Set("secret", apiKey.Secret)
+	}
 }

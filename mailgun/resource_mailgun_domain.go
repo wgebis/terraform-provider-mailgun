@@ -279,70 +279,53 @@ func resourceMailgunDomainImport(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceMailgunDomainUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var name = d.Get("name").(string)
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
 		return diag.FromErr(errc)
 	}
 
-	var currentData schema.ResourceData
-	var newPassword = d.Get("smtp_password").(string)
-	var smtpLogin = d.Get("smtp_login").(string)
-	var openTracking = d.Get("open_tracking").(bool)
-	var clickTracking = d.Get("click_tracking").(bool)
-	var webScheme = d.Get("web_scheme").(string)
+	name := d.Get("name").(string)
 
-	// Retrieve and update state of domain
-	_, errc = resourceMailgunDomainRetrieve(d.Id(), client, &currentData)
-
-	if errc != nil {
-		return diag.FromErr(errc)
-	}
-
-	// Update default credential if changed
-	if currentData.Get("smtp_password") != newPassword {
-		errc = client.ChangeCredentialPassword(ctx, name, smtpLogin, newPassword)
-
-		if errc != nil {
-			return diag.FromErr(errc)
+	// The Mailgun API does not return smtp_password on GET (only on the
+	// initial create response), so we cannot diff it server-side. Rely on
+	// Terraform's HasChange instead of comparing against a fetched value
+	// (regression: previous implementation called every Update endpoint on
+	// every apply because it compared against a zero-value ResourceData).
+	if d.HasChange("smtp_password") {
+		err := client.ChangeCredentialPassword(ctx, name, d.Get("smtp_login").(string), d.Get("smtp_password").(string))
+		if err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
-	if currentData.Get("open_tracking") != openTracking {
-		var openTrackingValue = "no"
-		if openTracking {
-			openTrackingValue = "yes"
+	if d.HasChange("open_tracking") {
+		v := "no"
+		if d.Get("open_tracking").(bool) {
+			v = "yes"
 		}
-		errc = client.UpdateOpenTracking(ctx, name, openTrackingValue)
-
-		if errc != nil {
-			return diag.FromErr(errc)
+		if err := client.UpdateOpenTracking(ctx, name, v); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
-	if currentData.Get("click_tracking") != clickTracking {
-		var clickTrackingValue = "no"
-		if clickTracking {
-			clickTrackingValue = "yes"
+	if d.HasChange("click_tracking") {
+		v := "no"
+		if d.Get("click_tracking").(bool) {
+			v = "yes"
 		}
-		errc = client.UpdateClickTracking(ctx, d.Get("name").(string), clickTrackingValue)
-
-		if errc != nil {
-			return diag.FromErr(errc)
+		if err := client.UpdateClickTracking(ctx, name, v); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
-	if currentData.Get("web_scheme") != webScheme {
-		opts := mailgun.UpdateDomainOptions{}
-		opts.WebScheme = webScheme
-		errc = client.UpdateDomain(ctx, name, &opts)
-
-		if errc != nil {
-			return diag.FromErr(errc)
+	if d.HasChange("web_scheme") {
+		opts := mailgun.UpdateDomainOptions{WebScheme: d.Get("web_scheme").(string)}
+		if err := client.UpdateDomain(ctx, name, &opts); err != nil {
+			return diag.FromErr(err)
 		}
 	}
 
-	return nil
+	return resourceMailgunDomainRead(ctx, d, meta)
 }
 
 func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -368,7 +351,7 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
 
-	_, err := client.CreateDomain(context.Background(), name, &opts)
+	_, err := client.CreateDomain(ctx, name, &opts)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -401,10 +384,10 @@ func resourceMailgunDomainCreate(ctx context.Context, d *schema.ResourceData, me
 	log.Printf("[INFO] Domain ID: %s", d.Id())
 
 	// Retrieve and update state of domain
-	_, err = resourceMailgunDomainRetrieve(d.Id(), client, d)
+	_, err = resourceMailgunDomainRetrieve(ctx, d.Id(), client, d)
 
 	if err != nil {
-		return diag.FromErr(errc)
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -419,7 +402,7 @@ func resourceMailgunDomainDelete(ctx context.Context, d *schema.ResourceData, me
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
 
 	// Destroy the domain
-	err := client.DeleteDomain(context.Background(), d.Id())
+	err := client.DeleteDomain(ctx, d.Id())
 	if err != nil {
 		return diag.Errorf("Error deleting domain: %s", err)
 	}
@@ -450,21 +433,26 @@ func resourceMailgunDomainRead(ctx context.Context, d *schema.ResourceData, meta
 		return diag.FromErr(errc)
 	}
 
-	_, err := resourceMailgunDomainRetrieve(d.Id(), client, d)
+	_, err := resourceMailgunDomainRetrieve(ctx, d.Id(), client, d)
 
 	if err != nil {
+		if isNotFound(err) {
+			log.Printf("[WARN] Mailgun domain %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceMailgunDomainRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mtypes.GetDomainResponse, error) {
+func resourceMailgunDomainRetrieve(ctx context.Context, id string, client *mailgun.Client, d *schema.ResourceData) (*mtypes.GetDomainResponse, error) {
 
-	resp, err := client.GetDomain(context.Background(), id, nil)
+	resp, err := client.GetDomain(ctx, id, nil)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving domain: %s", err)
+		return nil, fmt.Errorf("Error retrieving domain: %w", err)
 	}
 
 	_ = d.Set("name", resp.Domain.Name)
@@ -502,18 +490,13 @@ func resourceMailgunDomainRetrieve(id string, client *mailgun.Client, d *schema.
 	_ = d.Set("sending_records", sendingRecords)
 	_ = d.Set("sending_records_set", sendingRecords)
 
-	info, err := client.GetDomainTracking(context.Background(), id)
-	var openTracking = false
-	if info.Open.Active {
-		openTracking = true
+	info, err := client.GetDomainTracking(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving domain tracking: %w", err)
 	}
-	_ = d.Set("open_tracking", openTracking)
 
-	var clickTracking = false
-	if info.Click.Active {
-		clickTracking = true
-	}
-	_ = d.Set("click_tracking", clickTracking)
+	_ = d.Set("open_tracking", info.Open.Active)
+	_ = d.Set("click_tracking", info.Click.Active)
 
 	return &resp, nil
 }

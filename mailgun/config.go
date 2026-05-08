@@ -10,9 +10,7 @@ import (
 
 // Config struct holds API key
 type Config struct {
-	APIKey        string
-	Region        string
-	MailgunClient *mailgun.Client
+	APIKey string
 }
 
 // Client returns a new client for accessing mailgun.
@@ -23,20 +21,21 @@ func (c *Config) Client() (*Config, diag.Diagnostics) {
 	return c, nil
 }
 
-// GetClient returns a client based on region.
-func (c *Config) GetClient(Region string) (*mailgun.Client, error) {
+// GetClient returns a fresh Mailgun client for the given region. A new client
+// is constructed on every call so concurrent operations targeting different
+// regions do not race on a shared client instance.
+func (c *Config) GetClient(region string) (*mailgun.Client, error) {
 
-	c.MailgunClient = mailgun.NewMailgun(c.APIKey)
-	c.Region = Region
-	c.ConfigureBaseUrl(Region)
+	client := mailgun.NewMailgun(c.APIKey)
+	configureBaseUrl(client, region)
 
-	return c.MailgunClient, nil
+	return client, nil
 }
 
-func (c *Config) ConfigureBaseUrl(Region string) {
-	if strings.ToLower(Region) == "eu" {
-		_ = c.MailgunClient.SetAPIBase(mailgun.APIBaseEU)
+func configureBaseUrl(client *mailgun.Client, region string) {
+	if strings.ToLower(region) == "eu" {
+		_ = client.SetAPIBase(mailgun.APIBaseEU)
 	} else {
-		_ = c.MailgunClient.SetAPIBase(mailgun.APIBase)
+		_ = client.SetAPIBase(mailgun.APIBase)
 	}
 }

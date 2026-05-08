@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-mailgun
+module github.com/wgebis/terraform-provider-mailgun
 
 go 1.24.1
 

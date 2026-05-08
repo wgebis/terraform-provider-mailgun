@@ -58,6 +58,73 @@ func TestAccMailgunRoute_Import(t *testing.T) {
 	})
 }
 
+func TestAccMailgunRoute_Update(t *testing.T) {
+	var route mtypes.Route
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckMailgunRouteConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMailgunRouteExists("mailgun_route.foobar", &route),
+					resource.TestCheckResourceAttr("mailgun_route.foobar", "priority", "0"),
+					resource.TestCheckResourceAttr("mailgun_route.foobar", "description", "inbound"),
+				),
+			},
+			{
+				Config: testAccCheckMailgunRouteConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMailgunRouteExists("mailgun_route.foobar", &route),
+					resource.TestCheckResourceAttr("mailgun_route.foobar", "priority", "10"),
+					resource.TestCheckResourceAttr("mailgun_route.foobar", "description", "inbound updated"),
+					resource.TestCheckResourceAttr(
+						"mailgun_route.foobar", "expression", "match_recipient('.*@updated.example.com')"),
+					resource.TestCheckResourceAttr(
+						"mailgun_route.foobar", "actions.0", "forward('http://example.com/api/v2/foos/')"),
+				),
+			},
+		},
+	})
+}
+
+// TestAccMailgunRoute_Recreate covers issue #49: a route deleted out of band
+// must trigger a re-create on the next plan instead of failing the Read.
+func TestAccMailgunRoute_Recreate(t *testing.T) {
+	var route mtypes.Route
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunRouteDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckMailgunRouteConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMailgunRouteExists("mailgun_route.foobar", &route),
+				),
+			},
+			{
+				PreConfig: func() {
+					client, err := testAccProvider.Meta().(*Config).GetClient("us")
+					if err != nil {
+						t.Fatalf("get client: %s", err)
+					}
+					if err := client.DeleteRoute(context.Background(), route.Id); err != nil {
+						t.Fatalf("delete route out of band: %s", err)
+					}
+				},
+				Config: testAccCheckMailgunRouteConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckMailgunRouteExists("mailgun_route.foobar", &route),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
 
 	for _, rs := range s.RootModule().Resources {
@@ -89,11 +156,14 @@ func testAccCheckMailgunRouteExists(n string, Route *mtypes.Route) resource.Test
 			return fmt.Errorf("No Route ID is set")
 		}
 
-		client := testAccProvider.Meta().(*Config)
+		client, errc := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		if errc != nil {
+			return errc
+		}
 
 		err := resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
 			var err error
-			*Route, err = client.MailgunClient.GetRoute(context.Background(), rs.Primary.ID)
+			*Route, err = client.GetRoute(context.Background(), rs.Primary.ID)
 
 			if err != nil {
 				return resource.NonRetryableError(err)
@@ -121,6 +191,18 @@ resource "mailgun_route" "foobar" {
     expression = "match_recipient('.*@example.com')"
     actions = [
         "forward('http://example.com/api/v1/foos/')",
+        "stop()"
+    ]
+}
+`
+
+const testAccCheckMailgunRouteConfigUpdate = `
+resource "mailgun_route" "foobar" {
+    priority = "10"
+    description = "inbound updated"
+    expression = "match_recipient('.*@updated.example.com')"
+    actions = [
+        "forward('http://example.com/api/v2/foos/')",
         "stop()"
     ]
 }

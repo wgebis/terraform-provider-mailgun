@@ -20,7 +20,7 @@ func TestAccMailgunDomainCredential_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunCrendentialDestroy,
+		CheckDestroy:      testAccCheckMailgunCredentialDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunCredentialConfig(domain),
@@ -48,7 +48,7 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunCrendentialDestroy,
+		CheckDestroy:      testAccCheckMailgunCredentialDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCheckMailgunCredentialConfig(domain),
@@ -82,7 +82,32 @@ func TestAccMailgunDomainCredential_Update(t *testing.T) {
 	})
 }
 
-func testAccCheckMailgunCrendentialDestroy(s *terraform.State) error {
+func TestAccMailgunDomainCredential_Import(t *testing.T) {
+	resourceName := "mailgun_domain_credential.foobar"
+	uuid, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraformcredimp.%s.com", uuid)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunCredentialDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckMailgunCredentialConfig(domain),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				// password is write-only on the API and never returned by
+				// ListCredentials; skip it during import verification.
+				ImportStateVerifyIgnore: []string{"password"},
+			},
+		},
+	})
+}
+
+func testAccCheckMailgunCredentialDestroy(s *terraform.State) error {
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_domain_credential" {
@@ -90,6 +115,9 @@ func testAccCheckMailgunCrendentialDestroy(s *terraform.State) error {
 		}
 
 		client, err := testAccProvider.Meta().(*Config).GetClient(rs.Primary.Attributes["region"])
+		if err != nil {
+			return err
+		}
 
 		resp, err := client.GetDomain(context.Background(), rs.Primary.Attributes["domain"], nil)
 		if err == nil {

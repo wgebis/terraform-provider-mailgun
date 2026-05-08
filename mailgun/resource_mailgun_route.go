@@ -17,9 +17,9 @@ import (
 func resourceMailgunRoute() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceMailgunRouteCreate,
-		Read:          resourceMailgunRouteRead,
-		Update:        resourceMailgunRouteUpdate,
-		Delete:        resourceMailgunRouteDelete,
+		ReadContext:   resourceMailgunRouteRead,
+		UpdateContext: resourceMailgunRouteUpdate,
+		DeleteContext: resourceMailgunRouteDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceMailgunRouteImport,
 		},
@@ -86,7 +86,7 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 	opts.Actions = actionArray
 	log.Printf("[DEBUG] Route create configuration: %v", opts)
 
-	route, err := client.CreateRoute(context.Background(), opts)
+	route, err := client.CreateRoute(ctx, opts)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -97,7 +97,7 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 	log.Printf("[INFO] Route ID: %s", d.Id())
 
 	// Retrieve and update state of route
-	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
+	_, err = resourceMailgunRouteRetrieve(ctx, d.Id(), client, d)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -106,10 +106,10 @@ func resourceMailgunRouteCreate(ctx context.Context, d *schema.ResourceData, met
 	return nil
 }
 
-func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunRouteUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	opts := mtypes.Route{}
@@ -128,10 +128,10 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 
 	log.Printf("[DEBUG] Route update configuration: %v", opts)
 
-	route, err := client.UpdateRoute(context.Background(), d.Id(), opts)
+	route, err := client.UpdateRoute(ctx, d.Id(), opts)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(route.Id)
@@ -139,32 +139,32 @@ func resourceMailgunRouteUpdate(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] Route ID: %s", d.Id())
 
 	// Retrieve and update state of route
-	_, err = resourceMailgunRouteRetrieve(d.Id(), client, d)
+	_, err = resourceMailgunRouteRetrieve(ctx, d.Id(), client, d)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunRouteDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	log.Printf("[INFO] Deleting Route: %s", d.Id())
 
 	// Destroy the route
-	err := client.DeleteRoute(context.Background(), d.Id())
+	err := client.DeleteRoute(ctx, d.Id())
 	if err != nil {
-		return fmt.Errorf("Error deleting route: %s", err)
+		return diag.Errorf("Error deleting route: %s", err)
 	}
 
 	// Give the destroy a chance to take effect
-	return resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
-		_, err = client.GetRoute(context.Background(), d.Id())
+	err = resource.RetryContext(ctx, 1*time.Minute, func() *resource.RetryError {
+		_, err = client.GetRoute(ctx, d.Id())
 		if err == nil {
 			log.Printf("[INFO] Retrying until route disappears...")
 			return resource.RetryableError(
@@ -173,29 +173,38 @@ func resourceMailgunRouteDelete(d *schema.ResourceData, meta interface{}) error 
 		log.Printf("[INFO] Got error looking for route, seems gone: %s", err)
 		return nil
 	})
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	return nil
 }
 
-func resourceMailgunRouteRead(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunRouteRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
-	_, err := resourceMailgunRouteRetrieve(d.Id(), client, d)
+	_, err := resourceMailgunRouteRetrieve(ctx, d.Id(), client, d)
 
 	if err != nil {
-		return err
+		if isNotFound(err) {
+			log.Printf("[WARN] Mailgun route %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceMailgunRouteRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mtypes.Route, error) {
+func resourceMailgunRouteRetrieve(ctx context.Context, id string, client *mailgun.Client, d *schema.ResourceData) (*mtypes.Route, error) {
 
-	route, err := client.GetRoute(context.Background(), id)
+	route, err := client.GetRoute(ctx, id)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving route: %s", err)
+		return nil, fmt.Errorf("Error retrieving route: %w", err)
 	}
 
 	_ = d.Set("priority", route.Priority)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
@@ -48,10 +49,10 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 						"mailgun_domain.foobar", "use_automatic_sender_security", "true"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
-					resource.TestMatchResourceAttr(
-						"mailgun_domain.foobar", "sending_records.0.name", re),
-					resource.TestMatchResourceAttr(
-						"mailgun_domain.foobar", "sending_records_set.0.name", re),
+					testAccCheckAnyAttrMatches(
+						"mailgun_domain.foobar", "sending_records", "name", re),
+					testAccCheckAnyAttrMatches(
+						"mailgun_domain.foobar", "sending_records_set", "name", re),
 				),
 			},
 		},
@@ -185,4 +186,28 @@ resource "mailgun_domain" "foobar" {
 	web_scheme = "https"
 	use_automatic_sender_security = true
 }`
+}
+
+// testAccCheckAnyAttrMatches asserts that at least one element of a list/set
+// attribute on the named resource has its `subkey` matching the given regex.
+// Mailgun's API returns sending_records / receiving_records in arbitrary order,
+// so positional checks (e.g. sending_records.0.name) are flaky.
+func testAccCheckAnyAttrMatches(resourceName, listAttr, subkey string, re *regexp.Regexp) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("resource not found: %s", resourceName)
+		}
+		prefix := listAttr + "."
+		suffix := "." + subkey
+		for k, v := range rs.Primary.Attributes {
+			if !strings.HasPrefix(k, prefix) || !strings.HasSuffix(k, suffix) {
+				continue
+			}
+			if re.MatchString(v) {
+				return nil
+			}
+		}
+		return fmt.Errorf("no element of %s.*.%s matched %q on %s", listAttr, subkey, re.String(), resourceName)
+	}
 }

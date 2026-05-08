@@ -86,7 +86,7 @@ The following arguments are supported:
 
 * `name` - (Required) The domain to add to Mailgun
 * `region` - (Optional) The region where domain will be created. Default value is `us`.
-* `smtp_password` - (Optional) Password for SMTP authentication
+* `smtp_password` - (Optional, Sensitive) Password for SMTP authentication. Marked sensitive; only sent to Mailgun on create or when the configured value changes (the Mailgun API does not return it on read).
 * `spam_action` - (Optional) `disabled` or `tag` Disable, no spam
     filtering will occur for inbound messages. Tag, messages
     will be tagged with a spam header. Default value is `disabled`.
@@ -107,7 +107,7 @@ The following attributes are exported:
 * `name` - The name of the domain.
 * `region` - The name of the region.
 * `smtp_login` - The login email for the SMTP server.
-* `smtp_password` - The password to the SMTP server.
+* `smtp_password` - The password to the SMTP server (sensitive; reflects the configured value, not refreshed from the Mailgun API).
 * `wildcard` - Whether or not the domain will accept email for sub-domains.
 * `spam_action` - The spam filtering setting.
 * `open_tracking` - The open tracking setting.

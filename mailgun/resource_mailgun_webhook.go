@@ -172,6 +172,11 @@ func resourceMailgunWebhookRead(ctx context.Context, d *schema.ResourceData, met
 	kind := d.Get("kind").(string)
 	urls, err := client.GetWebhook(ctx, d.Get("domain").(string), kind)
 	if err != nil {
+		if isNotFound(err) {
+			log.Printf("[WARN] Mailgun webhook %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
 		return diag.FromErr(err)
 	}
 

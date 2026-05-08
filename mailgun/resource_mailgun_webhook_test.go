@@ -61,6 +61,31 @@ func TestAccMailgunWebhook_Import(t *testing.T) {
 	})
 }
 
+func TestAccMailgunWebhook_Update(t *testing.T) {
+	uuid, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraformwh.%s.com", uuid)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: newProvider(),
+		CheckDestroy:      testAccCheckMailgunWebhookDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckMailgunWebhookConfig(domain),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("mailgun_webhook.foobar", "urls.0", "https://hoge.com"),
+				),
+			},
+			{
+				Config: testAccCheckMailgunWebhookConfigUpdate(domain),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("mailgun_webhook.foobar", "urls.#", "2"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckMailgunWebhookDestroy(s *terraform.State) error {
 
 	for _, rs := range s.RootModule().Resources {
@@ -95,5 +120,22 @@ resource "mailgun_webhook" "foobar" {
   region = "us"
   kind = "delivered"
   urls = ["https://hoge.com"]
+}`
+}
+
+func testAccCheckMailgunWebhookConfigUpdate(domain string) string {
+	return `
+resource "mailgun_domain" "foobar" {
+    name = "` + domain + `"
+	spam_action = "disabled"
+	region = "us"
+    wildcard = true
+}
+
+resource "mailgun_webhook" "foobar" {
+  domain = mailgun_domain.foobar.id
+  region = "us"
+  kind = "delivered"
+  urls = ["https://hoge.com", "https://example.com/hook"]
 }`
 }

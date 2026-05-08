@@ -17,9 +17,9 @@ func resourceMailgunCredential() *schema.Resource {
 
 	return &schema.Resource{
 		CreateContext: resourceMailgunCredentialCreate,
-		Read:          resourceMailgunCredentialRead,
-		Update:        resourceMailgunCredentialUpdate,
-		Delete:        resourceMailgunCredentialDelete,
+		ReadContext:   resourceMailgunCredentialRead,
+		UpdateContext: resourceMailgunCredentialUpdate,
+		DeleteContext: resourceMailgunCredentialDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceMailgunCredentialImport,
 		},
@@ -74,7 +74,7 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 
 	log.Printf("[DEBUG] Credential create configuration: email: %s", email)
 
-	err := client.CreateCredential(context.Background(), d.Get("domain").(string), email, password)
+	err := client.CreateCredential(ctx, d.Get("domain").(string), email, password)
 
 	if err != nil {
 		return diag.FromErr(err)
@@ -87,21 +87,21 @@ func resourceMailgunCredentialCreate(ctx context.Context, d *schema.ResourceData
 	return nil
 }
 
-func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunCredentialUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
 	password := d.Get("password").(string)
 
-	log.Printf("[DEBUG] Credential create configuration: email: %s", email)
+	log.Printf("[DEBUG] Credential update configuration: email: %s", email)
 
-	err := client.ChangeCredentialPassword(context.Background(), d.Get("domain").(string), email, password)
+	err := client.ChangeCredentialPassword(ctx, d.Get("domain").(string), email, password)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(email)
@@ -111,27 +111,27 @@ func resourceMailgunCredentialUpdate(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceMailgunCredentialDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunCredentialDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	email := fmt.Sprintf("%s@%s", d.Get("login").(string), d.Get("domain").(string))
-	err := client.DeleteCredential(context.Background(), d.Get("domain").(string), email)
+	err := client.DeleteCredential(ctx, d.Get("domain").(string), email)
 
 	if err != nil {
-		return fmt.Errorf("Error deleting credential: %s", err)
+		return diag.Errorf("Error deleting credential: %s", err)
 	}
 
 	return nil
 }
 
-func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunCredentialRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	parts := strings.SplitN(d.Id(), "@", 2)
 
 	if len(parts) != 2 {
-		return fmt.Errorf("The ID of credential '%s' don't contains domain!", d.Id())
+		return diag.Errorf("The ID of credential '%s' don't contains domain!", d.Id())
 	}
 
 	login := parts[0]
@@ -139,19 +139,19 @@ func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) err
 
 	client, errc := meta.(*Config).GetClient(d.Get("region").(string))
 	if errc != nil {
-		return errc
+		return diag.FromErr(errc)
 	}
 
 	log.Printf("[DEBUG] Read credential for region '%s' and email '%s'", d.Get("region"), d.Id())
 
 	itCredentials := client.ListCredentials(domain, nil)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	pageCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
 	var page []mtypes.Credential
 
-	for itCredentials.Next(ctx, &page) {
+	for itCredentials.Next(pageCtx, &page) {
 		log.Printf("[DEBUG] Read credential get new page")
 
 		for _, c := range page {
@@ -164,8 +164,15 @@ func resourceMailgunCredentialRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if err := itCredentials.Err(); err != nil {
-		return err
+		if isNotFound(err) {
+			log.Printf("[WARN] Mailgun credential %s not found, removing from state", d.Id())
+			d.SetId("")
+			return nil
+		}
+		return diag.FromErr(err)
 	}
 
-	return fmt.Errorf("The credential '%s' not found!", d.Id())
+	log.Printf("[WARN] Mailgun credential %s not found, removing from state", d.Id())
+	d.SetId("")
+	return nil
 }
