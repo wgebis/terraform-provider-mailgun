@@ -1,4 +1,4 @@
-package mailgun_test
+package framework_test
 
 import (
 	"context"
@@ -6,13 +6,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccMailgunWebhook_Basic(t *testing.T) {
-
 	uuid, _ := uuid.GenerateUUID()
 	domain := fmt.Sprintf("terraformcred.%s.com", uuid)
 
@@ -24,14 +22,10 @@ func TestAccMailgunWebhook_Basic(t *testing.T) {
 			{
 				Config: testAccCheckMailgunWebhookConfig(domain),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"mailgun_webhook.foobar", "domain", domain),
-					resource.TestCheckResourceAttr(
-						"mailgun_webhook.foobar", "region", "us"),
-					resource.TestCheckResourceAttr(
-						"mailgun_webhook.foobar", "kind", "delivered"),
-					resource.TestCheckResourceAttr(
-						"mailgun_webhook.foobar", "urls.0", "https://hoge.com"),
+					resource.TestCheckResourceAttr("mailgun_webhook.foobar", "domain", domain),
+					resource.TestCheckResourceAttr("mailgun_webhook.foobar", "region", "us"),
+					resource.TestCheckResourceAttr("mailgun_webhook.foobar", "kind", "delivered"),
+					resource.TestCheckResourceAttr("mailgun_webhook.foobar", "urls.0", "https://hoge.com"),
 				),
 			},
 		},
@@ -51,7 +45,6 @@ func TestAccMailgunWebhook_Import(t *testing.T) {
 			{
 				Config: testAccCheckMailgunWebhookConfig(domain),
 			},
-
 			{
 				ResourceName:      resourceName,
 				ImportState:       true,
@@ -87,22 +80,17 @@ func TestAccMailgunWebhook_Update(t *testing.T) {
 }
 
 func testAccCheckMailgunWebhookDestroy(s *terraform.State) error {
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_webhook" {
 			continue
 		}
-
-		client, _ := mailgunClientFor(rs.Primary.Attributes["region"])
-
+		client, _ := mailgunClientFromAttrs(rs.Primary.Attributes)
 		kind := rs.Primary.Attributes["kind"]
 		webhooks, err := client.GetWebhook(context.Background(), rs.Primary.Attributes["domain"], kind)
-
 		if err == nil {
 			return fmt.Errorf("Webhook still exists: %#v", webhooks)
 		}
 	}
-
 	return nil
 }
 

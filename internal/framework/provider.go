@@ -71,6 +71,10 @@ func (p *mailgunProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (p *mailgunProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewDomainResource,
+		NewRouteResource,
+		NewCredentialResource,
+		NewWebhookResource,
+		NewAPIKeyResource,
 	}
 }
 

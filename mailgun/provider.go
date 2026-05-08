@@ -20,15 +20,11 @@ func Provider() *schema.Provider {
 			},
 		},
 
-		// mailgun_domain is served by the framework provider via tf6muxserver.
+		// All resources and data sources are served by the framework provider
+		// via tf6muxserver. The SDKv2 provider remains only to satisfy the
+		// mux until the SDKv2 dependency is removed entirely.
 		DataSourcesMap: map[string]*schema.Resource{},
-
-		ResourcesMap: map[string]*schema.Resource{
-			"mailgun_api_key":           resourceMailgunApiKey(),
-			"mailgun_route":             resourceMailgunRoute(),
-			"mailgun_domain_credential": resourceMailgunCredential(),
-			"mailgun_webhook":           resourceMailgunWebhook(),
-		},
+		ResourcesMap:   map[string]*schema.Resource{},
 	}
 
 	p.ConfigureContextFunc = func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

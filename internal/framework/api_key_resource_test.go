@@ -1,4 +1,4 @@
-package mailgun_test
+package framework_test
 
 import (
 	"context"
@@ -44,7 +44,7 @@ func testAccCheckMailgunApiKeyDestroy(s *terraform.State) error {
 			continue
 		}
 
-		client, errc := mailgunClientFor(rs.Primary.Attributes["region"])
+		client, errc := mailgunClientFromAttrs(rs.Primary.Attributes)
 		if errc != nil {
 			return errc
 		}
@@ -83,7 +83,7 @@ func testAccCheckMailgunApiKeyExists(n string, APIKey *mtypes.APIKey) resource.T
 			return fmt.Errorf("No API key ID is set")
 		}
 
-		client, errc := mailgunClientFor(rs.Primary.Attributes["region"])
+		client, errc := mailgunClientFromAttrs(rs.Primary.Attributes)
 		if errc != nil {
 			return errc
 		}

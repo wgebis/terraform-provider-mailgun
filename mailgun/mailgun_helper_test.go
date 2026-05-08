@@ -1,7 +1,6 @@
 package mailgun
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -61,37 +60,6 @@ func TestSetDefaultRegionForImport(t *testing.T) {
 	}
 }
 
-func TestGenerateId(t *testing.T) {
-	d := schema.TestResourceDataRaw(t, resourceMailgunWebhook().Schema, map[string]interface{}{
-		"region": "eu",
-		"domain": "example.com",
-		"kind":   "delivered",
-	})
-
-	got := generateId(d)
-	want := "eu:example.com:delivered"
-	if got != want {
-		t.Errorf("generateId = %q, want %q", got, want)
-	}
-}
-
-func TestWebhookKindValidator(t *testing.T) {
-	validator := resourceMailgunWebhook().Schema["kind"].ValidateFunc
-
-	allowed := []string{"accepted", "clicked", "complained", "delivered", "opened", "permanent_fail", "temporary_fail", "unsubscribed"}
-	for _, kind := range allowed {
-		_, errs := validator(kind, "kind")
-		if len(errs) != 0 {
-			t.Errorf("kind %q should be valid, got errors: %v", kind, errs)
-		}
-	}
-
-	_, errs := validator("not-a-kind", "kind")
-	if len(errs) == 0 {
-		t.Errorf("invalid kind should report an error")
-	}
-}
-
 func TestIsNotFound(t *testing.T) {
 	if isNotFound(nil) {
 		t.Errorf("nil error should not be treated as not-found")
@@ -136,53 +104,9 @@ func TestIsNotFound(t *testing.T) {
 	}
 }
 
-func TestResourceMailgunWebhookImport(t *testing.T) {
-	cases := []struct {
-		name       string
-		id         string
-		wantRegion string
-		wantDomain string
-		wantKind   string
-		wantErr    bool
-	}{
-		{"three parts eu", "eu:example.com:delivered", "eu", "example.com", "delivered", false},
-		{"three parts us", "us:example.com:opened", "us", "example.com", "opened", false},
-		{"two parts defaults to us", "example.com:clicked", "us", "example.com", "clicked", false},
-		{"single part is invalid", "example.com", "", "", "", true},
-		{"empty string is invalid", "", "", "", "", true},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			d := schema.TestResourceDataRaw(t, resourceMailgunWebhook().Schema, map[string]interface{}{})
-			d.SetId(tc.id)
-
-			got, err := resourceMailgunWebhookImport(context.Background(), d, nil)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("expected error for id %q, got nil", tc.id)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if len(got) != 1 || got[0] != d {
-				t.Fatalf("expected single ResourceData echoed back, got %#v", got)
-			}
-			if v := d.Get("region").(string); v != tc.wantRegion {
-				t.Errorf("region = %q, want %q", v, tc.wantRegion)
-			}
-			if v := d.Get("domain").(string); v != tc.wantDomain {
-				t.Errorf("domain = %q, want %q", v, tc.wantDomain)
-			}
-			if v := d.Get("kind").(string); v != tc.wantKind {
-				t.Errorf("kind = %q, want %q", v, tc.wantKind)
-			}
-		})
-	}
-}
-
+// Webhook import + kind validator coverage lives in the framework resource
+// (internal/framework/webhook_resource.go) and its acceptance tests.
+//
 // Domain CustomizeDiff has been replaced by ModifyPlan in the framework
 // resource (internal/framework/domain_resource.go). Equivalent coverage lives
 // in framework acceptance tests.

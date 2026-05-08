@@ -1,4 +1,4 @@
-package mailgun_test
+package framework_test
 
 import (
 	"context"
@@ -108,7 +108,7 @@ func TestAccMailgunRoute_Recreate(t *testing.T) {
 			},
 			{
 				PreConfig: func() {
-					client, err := mailgunClientFor("us")
+					client, err := mailgunClientFromAttrs(map[string]string{"region": "us"})
 					if err != nil {
 						t.Fatalf("get client: %s", err)
 					}
@@ -126,60 +126,46 @@ func TestAccMailgunRoute_Recreate(t *testing.T) {
 }
 
 func testAccCheckMailgunRouteDestroy(s *terraform.State) error {
-
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_route" {
 			continue
 		}
-
-		client, _ := mailgunClientFor(rs.Primary.Attributes["region"])
-
+		client, _ := mailgunClientFromAttrs(rs.Primary.Attributes)
 		route, err := client.GetRoute(context.Background(), rs.Primary.ID)
-
 		if err == nil {
 			return fmt.Errorf("Route still exists: %#v", route)
 		}
 	}
-
 	return nil
 }
 
-func testAccCheckMailgunRouteExists(n string, Route *mtypes.Route) resource.TestCheckFunc {
+func testAccCheckMailgunRouteExists(n string, route *mtypes.Route) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
-
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
-
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Route ID is set")
 		}
-
-		client, errc := mailgunClientFor(rs.Primary.Attributes["region"])
+		client, errc := mailgunClientFromAttrs(rs.Primary.Attributes)
 		if errc != nil {
 			return errc
 		}
-
 		err := resource.RetryContext(context.Background(), 1*time.Minute, func() *resource.RetryError {
 			var err error
-			*Route, err = client.GetRoute(context.Background(), rs.Primary.ID)
-
+			*route, err = client.GetRoute(context.Background(), rs.Primary.ID)
 			if err != nil {
 				return resource.NonRetryableError(err)
 			}
-
 			return nil
 		})
-
 		if err != nil {
 			return fmt.Errorf("Unable to find Route after retries: %s", err)
 		}
-
-		if Route.Id != rs.Primary.ID {
+		if route.Id != rs.Primary.ID {
 			return fmt.Errorf("Route not found")
 		}
-
 		return nil
 	}
 }
