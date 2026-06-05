@@ -1,7 +1,6 @@
 // Package framework hosts the terraform-plugin-framework implementation of the
-// Mailgun provider. It is muxed together with the legacy SDKv2 provider in
-// main.go so resources can be migrated incrementally without breaking state
-// compatibility.
+// Mailgun provider. It serves every resource and data source over protocol v6
+// and is the sole runtime for the provider.
 package framework
 
 import (
@@ -11,8 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 
 	"github.com/wgebis/terraform-provider-mailgun/mailgun"
 )
@@ -30,8 +31,13 @@ func New() func() provider.Provider {
 
 type mailgunProvider struct{}
 
-// providerModel mirrors the SDKv2 provider schema. The two schemas must stay
-// in sync for the mux server to merge them without conflicts.
+// NewProviderServer returns a protocol v6 provider server backed by the
+// terraform-plugin-framework Mailgun provider. It is consumed by the binary
+// entrypoint in main.go and by acceptance tests.
+func NewProviderServer() (tfprotov6.ProviderServer, error) {
+	return providerserver.NewProtocol6WithError(New()())()
+}
+
 type providerModel struct {
 	APIKey types.String `tfsdk:"api_key"`
 }

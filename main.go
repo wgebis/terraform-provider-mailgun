@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 
@@ -18,9 +17,7 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers")
 	flag.Parse()
 
-	ctx := context.Background()
-
-	server, err := framework.MuxedProviderServer(ctx)
+	server, err := framework.NewProviderServer()
 	if err != nil {
 		log.Fatal(err)
 	}

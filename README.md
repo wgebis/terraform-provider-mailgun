@@ -16,10 +16,11 @@ Architecture
 
 All resources and data sources are implemented on top of
 `terraform-plugin-framework` (protocol v6) and live in `internal/framework/`.
-A thin `terraform-plugin-sdk/v2` provider stub remains, served alongside the
-framework provider through `terraform-plugin-mux` (`tf6muxserver`); it has no
-resources of its own and exists only as a transitional shim until the SDKv2
-dependency is dropped from `go.mod`.
+The provider is served directly over protocol v6; the former
+`terraform-plugin-sdk/v2` stub and the `terraform-plugin-mux` layer have been
+removed. SDKv2 is no longer a runtime or direct dependency and is not imported
+by any provider code — it lingers only as an indirect, test-only dependency of
+`terraform-plugin-testing`, which the acceptance tests use.
 
 | Resource / data source | Runtime |
 |---|---|
