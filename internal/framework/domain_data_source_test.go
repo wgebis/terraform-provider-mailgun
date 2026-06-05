@@ -1,23 +1,21 @@
-package mailgun
+package framework_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 func TestAccMailgunDomainDataSource_Basic(t *testing.T) {
-	uuid, _ := uuid.GenerateUUID()
-	domain := fmt.Sprintf("terraform.%s.com", uuid)
+	id, _ := uuid.GenerateUUID()
+	domain := fmt.Sprintf("terraform.%s.com", id)
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() {
-			testAccPreCheck(t)
-		},
-		ProviderFactories: newProvider(),
-		CheckDestroy:      testAccCheckMailgunDomainDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: protoV6Providers(),
+		CheckDestroy:             testAccCheckMailgunDomainDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccMailgunDomainDataSourceConfig_Basic(domain),

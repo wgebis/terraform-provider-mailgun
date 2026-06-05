@@ -49,6 +49,6 @@ The following attributes are exported:
 * `disabled_reason` - The reason for the key's disablement.
 * `expires_at` - When the key will expire.
 * `is_disabled` - Whether or not the key is disabled from use.
-* `secret` - The full API key secret in plain text.
+* `secret` - The full API key secret in plain text (marked sensitive; only available immediately after creation).
 * `user_id` - API key user's string user ID.
 * `user_name` - The API key user's name.

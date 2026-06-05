@@ -28,5 +28,5 @@ resource "mailgun_domain" "default" {
 
 The following arguments are supported:
 
-* `api_key` - (Required) Mailgun API key
+* `api_key` - (Required, Sensitive) Mailgun API key. Can also be supplied via the `MAILGUN_API_KEY` environment variable.
 
