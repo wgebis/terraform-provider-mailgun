@@ -2,7 +2,6 @@ package framework
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -189,20 +188,11 @@ func (r *domainResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	// Poll until the domain disappears (Mailgun is eventually consistent).
-	deadline := time.Now().Add(5 * time.Minute)
-	for {
+	if err := waitForDeletion(ctx, "domain", id, 5*time.Minute, 5*time.Second, func() error {
 		_, err := client.GetDomain(ctx, id, nil)
-		if err != nil {
-			log.Printf("[INFO] Got error looking for domain, seems gone: %s", err)
-			return
-		}
-		if time.Now().After(deadline) {
-			resp.Diagnostics.AddError("Timeout waiting for domain deletion",
-				fmt.Sprintf("domain %s still exists after 5 minutes", id))
-			return
-		}
-		log.Printf("[INFO] Retrying until domain disappears...")
-		time.Sleep(5 * time.Second)
+		return err
+	}); err != nil {
+		resp.Diagnostics.AddError("Failed waiting for domain deletion", err.Error())
 	}
 }
 
