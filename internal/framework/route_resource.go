@@ -226,19 +226,10 @@ func (r *routeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	// Poll until the route disappears (Mailgun is eventually consistent).
-	deadline := time.Now().Add(1 * time.Minute)
-	for {
+	if err := waitForDeletion(ctx, "route", id, 1*time.Minute, 2*time.Second, func() error {
 		_, err := client.GetRoute(ctx, id)
-		if err != nil {
-			log.Printf("[INFO] Got error looking for route, seems gone: %s", err)
-			return
-		}
-		if time.Now().After(deadline) {
-			resp.Diagnostics.AddError("Timeout waiting for route deletion",
-				fmt.Sprintf("route %s still exists after 1 minute", id))
-			return
-		}
-		log.Printf("[INFO] Retrying until route disappears...")
-		time.Sleep(2 * time.Second)
+		return err
+	}); err != nil {
+		resp.Diagnostics.AddError("Failed waiting for route deletion", err.Error())
 	}
 }
