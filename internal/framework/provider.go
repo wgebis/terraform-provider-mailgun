@@ -6,6 +6,7 @@ package framework
 import (
 	"context"
 	"os"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -39,7 +40,9 @@ func NewProviderServer() (tfprotov6.ProviderServer, error) {
 }
 
 type providerModel struct {
-	APIKey types.String `tfsdk:"api_key"`
+	APIKey            types.String  `tfsdk:"api_key"`
+	RequestsPerSecond types.Float64 `tfsdk:"requests_per_second"`
+	MaxRetries        types.Int64   `tfsdk:"max_retries"`
 }
 
 func (p *mailgunProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -52,6 +55,16 @@ func (p *mailgunProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 			"api_key": schema.StringAttribute{
 				Optional:  true,
 				Sensitive: true,
+			},
+			"requests_per_second": schema.Float64Attribute{
+				Optional: true,
+				Description: "Maximum Mailgun API requests per second for this provider instance. " +
+					"0 or unset disables pacing. Can also be set with MAILGUN_REQUESTS_PER_SECOND.",
+			},
+			"max_retries": schema.Int64Attribute{
+				Optional: true,
+				Description: "Number of times to retry a request that receives HTTP 429. " +
+					"0 or unset disables retries. Can also be set with MAILGUN_MAX_RETRIES.",
 			},
 		},
 	}
@@ -69,7 +82,42 @@ func (p *mailgunProvider) Configure(ctx context.Context, req provider.ConfigureR
 		apiKey = os.Getenv("MAILGUN_API_KEY")
 	}
 
-	cfg := &mailgun.Config{APIKey: apiKey}
+	rps := data.RequestsPerSecond.ValueFloat64()
+	if data.RequestsPerSecond.IsNull() {
+		if v := os.Getenv("MAILGUN_REQUESTS_PER_SECOND"); v != "" {
+			f, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				resp.Diagnostics.AddError("Invalid MAILGUN_REQUESTS_PER_SECOND",
+					"MAILGUN_REQUESTS_PER_SECOND must be a number: "+err.Error())
+				return
+			}
+			rps = f
+		}
+	}
+	maxRetries := data.MaxRetries.ValueInt64()
+	if data.MaxRetries.IsNull() {
+		if v := os.Getenv("MAILGUN_MAX_RETRIES"); v != "" {
+			n, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				resp.Diagnostics.AddError("Invalid MAILGUN_MAX_RETRIES",
+					"MAILGUN_MAX_RETRIES must be an integer: "+err.Error())
+				return
+			}
+			maxRetries = n
+		}
+	}
+	// !(rps >= 0) also rejects NaN, which ParseFloat accepts.
+	if !(rps >= 0) || maxRetries < 0 {
+		resp.Diagnostics.AddError("Invalid provider configuration",
+			"requests_per_second and max_retries must not be negative")
+		return
+	}
+
+	cfg := &mailgun.Config{
+		APIKey:            apiKey,
+		RequestsPerSecond: rps,
+		MaxRetries:        int(maxRetries),
+	}
 	resp.DataSourceData = cfg
 	resp.ResourceData = cfg
 }

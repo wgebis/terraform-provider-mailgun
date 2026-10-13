@@ -30,3 +30,5 @@ The following arguments are supported:
 
 * `api_key` - (Required, Sensitive) Mailgun API key. Can also be supplied via the `MAILGUN_API_KEY` environment variable.
 
+* `requests_per_second` - (Optional) Maximum Mailgun API requests per second for this provider instance. `0` or unset disables pacing. Can also be supplied via the `MAILGUN_REQUESTS_PER_SECOND` environment variable. The limit is per provider process, while Mailgun enforces limits per account, so split the budget across concurrent Terraform runs that share an account.
+* `max_retries` - (Optional) Number of times to retry a request that receives HTTP 429, waiting until Mailgun's `X-RateLimit-Reset` time when present and otherwise backing off exponentially (1s, 2s, 4s, ... up to 30s). `0` or unset disables retries. Can also be supplied via the `MAILGUN_MAX_RETRIES` environment variable.
