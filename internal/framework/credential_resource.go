@@ -6,12 +6,15 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/mailgun/mailgun-go/v5"
 	"github.com/mailgun/mailgun-go/v5/mtypes"
@@ -20,9 +23,10 @@ import (
 )
 
 var (
-	_ resource.Resource                = (*credentialResource)(nil)
-	_ resource.ResourceWithImportState = (*credentialResource)(nil)
-	_ resource.ResourceWithConfigure   = (*credentialResource)(nil)
+	_ resource.Resource                     = (*credentialResource)(nil)
+	_ resource.ResourceWithImportState      = (*credentialResource)(nil)
+	_ resource.ResourceWithConfigure        = (*credentialResource)(nil)
+	_ resource.ResourceWithConfigValidators = (*credentialResource)(nil)
 )
 
 // NewCredentialResource is the constructor registered with the framework
@@ -36,11 +40,13 @@ type credentialResource struct {
 }
 
 type credentialResourceModel struct {
-	ID       types.String `tfsdk:"id"`
-	Login    types.String `tfsdk:"login"`
-	Password types.String `tfsdk:"password"`
-	Domain   types.String `tfsdk:"domain"`
-	Region   types.String `tfsdk:"region"`
+	ID                types.String `tfsdk:"id"`
+	Login             types.String `tfsdk:"login"`
+	Password          types.String `tfsdk:"password"`
+	PasswordWO        types.String `tfsdk:"password_wo"`
+	PasswordWOVersion types.Int64  `tfsdk:"password_wo_version"`
+	Domain            types.String `tfsdk:"domain"`
+	Region            types.String `tfsdk:"region"`
 }
 
 func (r *credentialResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -63,8 +69,18 @@ func (r *credentialResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"password": schema.StringAttribute{
-				Required:  true,
+				Optional:  true,
 				Sensitive: true,
+			},
+			// Never stored in plan or state. Terraform only sends it on create
+			// and whenever password_wo_version changes.
+			"password_wo": schema.StringAttribute{
+				Optional:  true,
+				Sensitive: true,
+				WriteOnly: true,
+			},
+			"password_wo_version": schema.Int64Attribute{
+				Optional: true,
 			},
 			"domain": schema.StringAttribute{
 				Required: true,
@@ -97,6 +113,13 @@ func (r *credentialResource) Configure(_ context.Context, req resource.Configure
 	r.cfg = cfg
 }
 
+func (r *credentialResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(path.MatchRoot("password"), path.MatchRoot("password_wo")),
+		resourcevalidator.RequiredTogether(path.MatchRoot("password_wo"), path.MatchRoot("password_wo_version")),
+	}
+}
+
 // ImportState parses the SDKv2-compatible "region:login@domain" or bare
 // "login@domain" form. Region defaults to "us" when omitted.
 func (r *credentialResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -111,6 +134,8 @@ func (r *credentialResource) ImportState(ctx context.Context, req resource.Impor
 func (r *credentialResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan credentialResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	password, diags := credentialPassword(ctx, req.Config, plan)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -125,7 +150,7 @@ func (r *credentialResource) Create(ctx context.Context, req resource.CreateRequ
 	email := fmt.Sprintf("%s@%s", plan.Login.ValueString(), domain)
 	log.Printf("[DEBUG] Credential create configuration: email: %s", email)
 
-	if err := client.CreateCredential(ctx, domain, email, plan.Password.ValueString()); err != nil {
+	if err := client.CreateCredential(ctx, domain, email, password); err != nil {
 		resp.Diagnostics.AddError("Failed to create credential", err.Error())
 		return
 	}
@@ -179,6 +204,8 @@ func (r *credentialResource) Read(ctx context.Context, req resource.ReadRequest,
 func (r *credentialResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan credentialResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	password, diags := credentialPassword(ctx, req.Config, plan)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -193,7 +220,9 @@ func (r *credentialResource) Update(ctx context.Context, req resource.UpdateRequ
 	email := fmt.Sprintf("%s@%s", plan.Login.ValueString(), domain)
 	log.Printf("[DEBUG] Credential update configuration: email: %s", email)
 
-	if err := client.ChangeCredentialPassword(ctx, domain, email, plan.Password.ValueString()); err != nil {
+	// login, domain and region all force replacement, so an in-place update is
+	// always a password change: password itself or password_wo_version.
+	if err := client.ChangeCredentialPassword(ctx, domain, email, password); err != nil {
 		resp.Diagnostics.AddError("Failed to update credential", err.Error())
 		return
 	}
@@ -219,6 +248,18 @@ func (r *credentialResource) Delete(ctx context.Context, req resource.DeleteRequ
 		resp.Diagnostics.AddError("Failed to delete credential", err.Error())
 		return
 	}
+}
+
+// credentialPassword returns the password to send to Mailgun. Write-only
+// attributes are always null in the plan, so password_wo is read from the
+// config, falling back to password.
+func credentialPassword(ctx context.Context, config tfsdk.Config, plan credentialResourceModel) (string, diag.Diagnostics) {
+	var passwordWO types.String
+	diags := config.GetAttribute(ctx, path.Root("password_wo"), &passwordWO)
+	if !passwordWO.IsNull() {
+		return passwordWO.ValueString(), diags
+	}
+	return plan.Password.ValueString(), diags
 }
 
 // credentialExists reports whether a credential with the given email lives on
